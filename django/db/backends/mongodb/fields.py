@@ -52,7 +52,7 @@ def fix_autofield(sender, **kwargs):
     Fix autofield
     """
     cls = sender
-    if isinstance(cls._meta.pk, DJAutoField):
+    if cls.objects.db =="mongodb" and isinstance(cls._meta.pk, DJAutoField):
         pk = cls._meta.pk
         setattr(pk, "to_python", autofield_to_python)
         setattr(pk, "get_prep_value", autofield_get_prep_value)

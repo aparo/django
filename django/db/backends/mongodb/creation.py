@@ -4,7 +4,6 @@ from django.db.backends.creation import BaseDatabaseCreation
 TEST_DATABASE_PREFIX = 'test_'
 
 class DatabaseCreation(BaseDatabaseCreation):
-    # TODO - check datatypes
     data_types = {
         'DateTimeField':                'datetime',
         'DateField':                    'date',
