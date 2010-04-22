@@ -2,7 +2,7 @@ from pymongo import Connection
 from pymongo.son_manipulator import SONManipulator
 
 def encode_django(model):
-    from .fields import EmbeddedModel
+    from django.db.backends.mongodb.fields import EmbeddedModel
     if isinstance(model, EmbeddedModel):
         res = model.serialize()
         res["_type"] = "emb"
@@ -30,7 +30,7 @@ def decode_django(data):
 class TransformDjango(SONManipulator):
     def transform_incoming(self, son, collection):
         from django.db.models import Model
-        from .fields import EmbeddedModel
+        from django.db.backends.mongodb.fields import EmbeddedModel
         if isinstance(son, dict):
             for (key, value) in son.items():
                 if isinstance(value, (Model, EmbeddedModel)):
