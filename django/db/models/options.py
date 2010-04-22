@@ -21,7 +21,8 @@ get_verbose_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|
 DEFAULT_NAMES = ('verbose_name', 'db_table', 'ordering',
                  'unique_together', 'permissions', 'get_latest_by',
                  'order_with_respect_to', 'app_label', 'db_tablespace',
-                 'abstract', 'managed', 'proxy', 'auto_created')
+                 'abstract', 'managed', 'proxy', 'auto_created', 'capped',
+                 'collection_max', 'collection_size')
 
 class Options(object):
     def __init__(self, meta, app_label=None):
