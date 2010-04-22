@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from django.db.backends.mongodb.fields import ListField, SortedListField, DictField, SetListField, EmbeddedModel
+from django.db.backends.mongodb.fields import EmbeddedModel
+from django.db.models.nosql.fields import ListField, SortedListField, DictField, SetListField
 
 class StringForeignKey(models.ForeignKey):
 
