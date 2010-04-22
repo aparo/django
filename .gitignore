@@ -1,0 +1,4 @@
+*.pyc
+*~
+.hg*
+Django.egg-info
