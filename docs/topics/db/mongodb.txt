@@ -1,6 +1,3 @@
-mongoDJ
--------
-
 MongoDB backend for Django.
 
 The aim of the project is to create a native django DB backend
@@ -54,7 +51,7 @@ DATABASES = {
         'PORT': '',                     
     },
     'mongodb': {
-        'ENGINE': 'mongodj',
+        'ENGINE': 'django.db.backends.mongodb',
         'NAME': 'test',
         'USER': '',
         'PASSWORD': '',
@@ -68,7 +65,7 @@ in INSTALLED_APPS 'django.contrib.contenttypes' is required.
 
 Activate routing adding::
 
-	DATABASE_ROUTERS = ['mongodj.router.MongoDBRouter']
+	DATABASE_ROUTERS = ['django.db.backends.mongodb.router.MongoDBRouter']
 
 
 Select apps that you want manage in mongodb::
@@ -79,9 +76,9 @@ Select apps that you want manage in mongodb::
 South Support
 -------------
 
-Add this line to settings.py to make south happy to use mongodj.
+Add this line to settings.py to make south happy to use mongodb.
 
-SOUTH_DATABASE_ADAPTERS = { "mongodb" : "mongodj.south"}
+SOUTH_DATABASE_ADAPTERS = { "mongodb" : "django.db.backends.mongodb.south"}
 
 
 Extra
