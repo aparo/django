@@ -14,14 +14,15 @@ class EmbeddedModel(models.Model):
     
     def save(self, *args, **kwargs):
         if self.pk is None:
-            self.pk = ObjectId()
+            self.pk = unicode(ObjectId())
         if self._embedded_in  is None:
             raise RuntimeError("Invalid save")
         self._embedded_in.save()
 
     def serialize(self):
         if self.pk is None:
-            self.pk = ObjectId()
+            self.pk = unicode(ObjectId())
+            self.id = self.pk
         result = {'_app':self._meta.app_label, 
             '_model':self._meta.module_name,
             '_id':self.pk}
