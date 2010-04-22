@@ -75,5 +75,9 @@ class TestFieldModel(models.Model):
     mset = SetListField()
     mset_default = SetListField(default=set(["a", 'b']))
 
+    class Meta:
+        index_together = [{
+                            'fields' : [ ('title', False), 'mlist']
+                            }]
     def __unicode__(self):
         return "Test special field model: %s" % (self.title)

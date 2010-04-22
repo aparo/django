@@ -22,7 +22,7 @@ DEFAULT_NAMES = ('verbose_name', 'db_table', 'ordering',
                  'unique_together', 'permissions', 'get_latest_by',
                  'order_with_respect_to', 'app_label', 'db_tablespace',
                  'abstract', 'managed', 'proxy', 'auto_created', 'capped',
-                 'collection_max', 'collection_size')
+                 'collection_max', 'collection_size', 'index_together')
 
 class Options(object):
     def __init__(self, meta, app_label=None):
