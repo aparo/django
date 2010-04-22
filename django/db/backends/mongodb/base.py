@@ -9,7 +9,9 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .creation import DatabaseCreation
 from django.db.backends.mongodb.operations import DatabaseOperations
-from manager import Manager
+from .manager import Manager
+
+print "ok"
 
 class DatabaseFeatures(BaseDatabaseFeatures):
     distinguishes_insert_from_update = False
