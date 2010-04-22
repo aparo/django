@@ -27,14 +27,14 @@ class StringForeignKey(models.ForeignKey):
 
 
 class Blog(models.Model):
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, db_index=True)
     
     def __unicode__(self):
         return "Blog: %s" % self.title
 
 
 class Entry(models.Model):
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, db_index=True, index_descending=True,unique=True)
     content = models.CharField(max_length=1000)
     date_published = models.DateTimeField()
     blog = StringForeignKey(Blog, null=True, blank=True)

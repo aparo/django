@@ -34,6 +34,26 @@ class DatabaseCreation(BaseDatabaseCreation):
     }
     
 
+    def sql_indexes_for_field(self, model, f, style):
+        opts = model._meta
+        col = getattr(self.connection.db_connection, opts.db_table)
+        if f.db_index:
+            direction = (getattr(f, "index_descending") and -1) or 1
+            col.ensure_index([(f.name, direction)], unique=f.unique)
+        return []
+
+    def sql_indexes_for_model(self, model, style):
+        "Returns the CREATE INDEX SQL statements for a single model"
+        if not model._meta.managed or model._meta.proxy:
+            return []
+        fields = [ f for f in model._meta.local_fields if f.db_index]
+        if not fields:
+            return []
+        print "Installing index for %s.%s model" % (model._meta.app_label, model._meta.object_name)
+        for f in model._meta.local_fields:
+            self.sql_indexes_for_field(model, f, style)
+        return []
+
     def sql_create_model(self, model, style, known_models=set()):
         opts = model._meta
         kwargs = {}
