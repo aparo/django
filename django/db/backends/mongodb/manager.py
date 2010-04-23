@@ -459,7 +459,6 @@ class QuerySet(object):
         .. versionadded:: 0.3
         """
         #from document import MapReduceDocument
-        raise NotImplementedError("Not implemented yet")
         
         if not hasattr(self._collection, "map_reduce"):
             raise NotImplementedError("Requires MongoDB >= 1.1.1")
@@ -504,8 +503,7 @@ class QuerySet(object):
             results = results.sort(self._ordering)
 
         for doc in results:
-            yield MapReduceDocument(self._document, self._collection,
-                                    doc['_id'], doc['value'])
+            yield self._document.objects.with_id(doc['value'])
 
     def limit(self, n):
         """Limit the number of returned documents to `n`. This may also be
