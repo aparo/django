@@ -458,8 +458,9 @@ class QuerySet(object):
 
         .. versionadded:: 0.3
         """
-        from document import MapReduceDocument
-
+        #from document import MapReduceDocument
+        raise NotImplementedError("Not implemented yet")
+        
         if not hasattr(self._collection, "map_reduce"):
             raise NotImplementedError("Requires MongoDB >= 1.1.1")
 
