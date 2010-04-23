@@ -1,6 +1,8 @@
 from django.db.models.manager import Manager as DJManager
 
 import pymongo
+from pymongo.objectid import ObjectId
+
 import re
 import copy
 from .utils import dict_keys_to_str
@@ -253,18 +255,20 @@ class QuerySet(object):
         return self._cursor_obj.clone()
 
     @classmethod
-    def _lookup_field(cls, document, field):
+    def _lookup_field(cls, document, fields):
         """
         Looks for "field" in "document"
         """
-        return document._meta.get_field_by_name((field == "pk" and id) or field)[0]
+        if isinstance(fields, (tuple, list)):
+            return [document._meta.get_field_by_name((field == "pk" and id) or field)[0] for field in fields]
+        return document._meta.get_field_by_name((fields == "pk" and id) or fields)[0]
 
     @classmethod
     def _translate_field_name(cls, doc_cls, field, sep='.'):
         """Translate a field attribute name to a database field name.
         """
         parts = field.split(sep)
-        parts = [f.db_field for f in QuerySet._lookup_field(doc_cls, parts)]
+        parts = [f.attname for f in QuerySet._lookup_field(doc_cls, parts)]
         return '.'.join(parts)
 
     @classmethod
@@ -392,9 +396,9 @@ class QuerySet(object):
         id_field = self._document._meta['id_field']
         object_id = self._document._fields[id_field].to_mongo(object_id)
 
-        result = self._collection.find_one({'_id': object_id})
+        result = self._collection.find_one({'_id': (not isinstance(object_id, ObjectId) and ObjectId(object_id)) or object_id})
         if result is not None:
-            result = self._document(**result)
+            result = self._document(**dict_keys_to_str(result))
         return result
 
     def in_bulk(self, object_ids):
@@ -408,30 +412,12 @@ class QuerySet(object):
         """
         doc_map = {}
 
-        docs = self._collection.find({'_id': {'$in': object_ids}})
+        docs = self._collection.find({'_id': {'$in': [ (not isinstance(id, ObjectId) and ObjectId(id)) or id for id in object_ids]}})
         for doc in docs:
-            doc_map[doc['_id']] = self._document(**doc)
+            doc_map[str(doc['id'])] = self._document(**dict_keys_to_str(doc))
  
         return doc_map
-
-    def next(self):
-        """Wrap the result in a :class:`~mongoengine.Document` object.
-        """
-        try:
-            if self._limit == 0:
-                raise StopIteration
-            return self._document(**dict_keys_to_str(self._cursor.next()))
-        except StopIteration, e:
-            self.rewind()
-            raise e
-
-    def rewind(self):
-        """Rewind the cursor to its unevaluated state.
-
-        .. versionadded:: 0.3
-        """
-        self._cursor.rewind()
-
+    
     def count(self):
         """Count the selected elements in the query.
         """
@@ -481,13 +467,15 @@ class QuerySet(object):
         if isinstance(map_f, pymongo.code.Code):
             map_f_scope = map_f.scope
             map_f = unicode(map_f)
-        map_f = pymongo.code.Code(self._sub_js_fields(map_f), map_f_scope)
+#        map_f = pymongo.code.Code(self._sub_js_fields(map_f), map_f_scope)
+        map_f = pymongo.code.Code(map_f, map_f_scope)
 
         reduce_f_scope = {}
         if isinstance(reduce_f, pymongo.code.Code):
             reduce_f_scope = reduce_f.scope
             reduce_f = unicode(reduce_f)
-        reduce_f_code = self._sub_js_fields(reduce_f)
+#        reduce_f_code = self._sub_js_fields(reduce_f)
+        reduce_f_code = reduce_f
         reduce_f = pymongo.code.Code(reduce_f_code, reduce_f_scope)
 
         mr_args = {'query': self._query, 'keeptemp': keep_temp}
@@ -497,7 +485,8 @@ class QuerySet(object):
             if isinstance(finalize_f, pymongo.code.Code):
                 finalize_f_scope = finalize_f.scope
                 finalize_f = unicode(finalize_f)
-            finalize_f_code = self._sub_js_fields(finalize_f)
+#            finalize_f_code = self._sub_js_fields(finalize_f)
+            finalize_f_code = finalize_f
             finalize_f = pymongo.code.Code(finalize_f_code, finalize_f_scope)
             mr_args['finalize'] = finalize_f
 
@@ -589,7 +578,7 @@ class QuerySet(object):
             self._loaded_fields += ['_cls']
         return self
 
-    def order_by(self, *keys):
+    def order_by(self, *args):
         """Order the :class:`~mongoengine.queryset.QuerySet` by the keys. The
         order may be specified by prepending each of the keys by a + or a -.
         Ascending order is assumed.
@@ -597,17 +586,12 @@ class QuerySet(object):
         :param keys: fields to order the query results by; keys may be
             prefixed with **+** or **-** to determine the ordering direction
         """
-        key_list = []
-        for key in keys:
-            direction = pymongo.ASCENDING
-            if key[0] == '-':
-                direction = pymongo.DESCENDING
-            if key[0] in ('-', '+'):
-                key = key[1:]
-            key_list.append((key, direction))
-
-        self._ordering = key_list
-        self._cursor.sort(key_list)
+        
+        self._ordering = {}
+        for col in args:
+            self._ordering.update({ (col.startswith("-") and col[1:]) or col : (col.startswith("-") and -1) or 1 })
+            
+        self._cursor.sort(self._ordering)
         return self
 
     def explain(self, format=False):
@@ -741,7 +725,8 @@ class QuerySet(object):
         return re.sub(u'\[\s*~([A-z_][A-z_0-9.]+?)\s*\]', field_sub, code)
 
     def exec_js(self, code, *fields, **options):
-        """Execute a Javascript function on the server. A list of fields may be
+        """
+        Execute a Javascript function on the server. A list of fields may be
         provided, which will be translated to their correct names and supplied
         as the arguments to the function. A few extra variables are added to
         the function's scope: ``collection``, which is the name of the
@@ -762,14 +747,13 @@ class QuerySet(object):
         :param options: options that you want available to the function
             (accessed in Javascript through the ``options`` object)
         """
-        code = self._sub_js_fields(code)
+#        code = self._sub_js_fields(code)
 
-        fields = [QuerySet._translate_field_name(self._document, f)
-                  for f in fields]
-        collection = self._document._meta['collection']
+        fields = [QuerySet._translate_field_name(self._document, f) for f in fields]
+        collection = self._collection
 
         scope = {
-            'collection': collection,
+            'collection': collection.name,
             'options': options or {},
         }
 
@@ -780,8 +764,7 @@ class QuerySet(object):
         scope['query'] = query
         code = pymongo.code.Code(code, scope=scope)
 
-        db = _get_db()
-        return db.eval(code, *fields)
+        return collection.database.eval(code, *fields)
 
     def sum(self, field):
         """Sum over the values of the specified field.
