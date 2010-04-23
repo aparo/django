@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import Field
+from django.db.models.fields import FieldDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.core import serializers
 from pymongo.objectid import ObjectId
@@ -61,33 +62,14 @@ def add_mongodb_manager(sender, **kwargs):
             cls = sender
         if cls._meta.abstract:
             return
-        if hasattr(cls, '_default_manager') and (not isinstance(cls._default_manager, Manager)):
-            setattr(cls, 'objects', Manager())
-            cls._base_manager = cls.objects
-            cls._default_manager = cls.objects
             
-        if not getattr(cls, '_default_manager', None):
+        if getattr(cls, 'mongodb', None) is None:
             # Create the default manager, if needed.
             try:
-                cls._meta.get_field('objects')
+                cls._meta.get_field('mongodb')
                 raise ValueError("Model %s must specify a custom Manager, because it has a field named 'objects'" % cls.__name__)
             except FieldDoesNotExist:
                 pass
-            cls.add_to_class('objects', Manager())
-            cls._base_manager = cls.objects
-        elif not getattr(cls, '_base_manager', None):
-            default_mgr = cls._default_manager.__class__
-            if (default_mgr is Manager or
-                    getattr(default_mgr, "use_for_related_fields", False)):
-                cls._base_manager = cls._default_manager
-            else:
-                # Default manager isn't a plain Manager class, or a suitable
-                # replacement, so we walk up the base class hierarchy until we hit
-                # something appropriate.
-                for base_class in default_mgr.mro()[1:]:
-                    if (base_class is Manager or
-                            getattr(base_class, "use_for_related_fields", False)):
-                        cls.add_to_class('_base_manager', base_class())
-                        return
-                raise AssertionError("Should never get here. Please report a bug, including your model and model manager setup.")
+            setattr(cls, 'mongodb', Manager())
+
 signals.class_prepared.connect(add_mongodb_manager)

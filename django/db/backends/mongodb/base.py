@@ -11,8 +11,6 @@ from .creation import DatabaseCreation
 from django.db.backends.mongodb.operations import DatabaseOperations
 from .manager import Manager
 
-print "ok"
-
 class DatabaseFeatures(BaseDatabaseFeatures):
     distinguishes_insert_from_update = False
     supports_deleting_related_objects = False
