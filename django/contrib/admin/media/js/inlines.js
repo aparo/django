@@ -58,7 +58,7 @@
 				var row = template.clone(true);
 				row.removeClass(options.emptyCssClass)
 				    .addClass(options.formCssClass)
-				    .attr("id", options.prefix + nextIndex)
+				    .attr("id", options.prefix + "-" + nextIndex)
 				    .insertBefore($(template));
 				row.find("*")
 				    .filter(function() {

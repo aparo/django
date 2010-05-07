@@ -2,6 +2,7 @@
 
 import re
 import datetime
+from django.conf import settings
 from django.core.files import temp as tempfile
 from django.test import TestCase
 from django.contrib.auth import admin # Register auth models with the admin.
@@ -15,7 +16,7 @@ from django.forms.util import ErrorList
 from django.utils import formats
 from django.utils.cache import get_max_age
 from django.utils.html import escape
-from django.utils.translation import get_date_formats
+from django.utils.translation import get_date_formats, activate, deactivate
 from django.utils.encoding import iri_to_uri
 
 # local test models
@@ -270,6 +271,34 @@ class AdminViewBasicTest(TestCase):
         # Post model).
         response = self.client.get("/test_admin/admin/admin_views/post/")
         self.failUnless('icon-unknown.gif' in response.content)
+
+    def testI18NLanguageNonEnglishDefault(self):
+        """
+        Check if the Javascript i18n view returns an empty language catalog
+        if the default language is non-English but the selected language
+        is English. See #13388 and #3594 for more details.
+        """
+        old_language_code = settings.LANGUAGE_CODE
+        settings.LANGUAGE_CODE = 'fr'
+        activate('en-us')
+        response = self.client.get('/test_admin/admin/jsi18n/')
+        self.assertNotContains(response, 'Choisir une heure')
+        deactivate()
+        settings.LANGUAGE_CODE = old_language_code
+
+    def testI18NLanguageNonEnglishFallback(self):
+        """
+        Makes sure that the fallback language is still working properly
+        in cases where the selected language cannot be found.
+        """
+        old_language_code = settings.LANGUAGE_CODE
+        settings.LANGUAGE_CODE = 'fr'
+        activate('none')
+        response = self.client.get('/test_admin/admin/jsi18n/')
+        self.assertContains(response, 'Choisir une heure')
+        deactivate()
+        settings.LANGUAGE_CODE = old_language_code
+
 
 class SaveAsTests(TestCase):
     fixtures = ['admin-views-users.xml','admin-views-person.xml']
@@ -1091,6 +1120,8 @@ class AdminViewListEditable(TestCase):
             "form-2-alive": "checked",
             "form-2-gender": "1",
             "form-2-id": "3",
+
+            "_save": "Save",
         }
         response = self.client.post('/test_admin/admin/admin_views/person/',
                                     data, follow=True)
@@ -1111,6 +1142,8 @@ class AdminViewListEditable(TestCase):
             "form-2-alive": "checked",
             "form-2-gender": "1",
             "form-2-id": "3",
+
+            "_save": "Save",
         }
         self.client.post('/test_admin/admin/admin_views/person/', data)
 
@@ -1130,6 +1163,8 @@ class AdminViewListEditable(TestCase):
             "form-1-id": "3",
             "form-1-gender": "1",
             "form-1-alive": "checked",
+
+            "_save": "Save",
         }
         self.client.post('/test_admin/admin/admin_views/person/?gender__exact=1', data)
 
@@ -1142,7 +1177,9 @@ class AdminViewListEditable(TestCase):
             "form-MAX_NUM_FORMS": "0",
 
             "form-0-id": "1",
-            "form-0-gender": "1"
+            "form-0-gender": "1",
+
+            "_save": "Save",
         }
         self.client.post('/test_admin/admin/admin_views/person/?q=mauchly', data)
 
@@ -1158,6 +1195,10 @@ class AdminViewListEditable(TestCase):
             "form-0-id": "2",
             "form-0-alive": "1",
             "form-0-gender": "2",
+
+            # Ensure that the form processing understands this as a list_editable "Save"
+            # and not an action "Go".
+            "_save": "Save",
         }
         response = self.client.post('/test_admin/admin/admin_views/person/', data)
         self.assertContains(response, "Grace is not a Zombie")
@@ -1172,6 +1213,8 @@ class AdminViewListEditable(TestCase):
             "form-0-id": "2",
             "form-0-alive": "1",
             "form-0-gender": "2",
+
+            "_save": "Save",
         }
         response = self.client.post('/test_admin/admin/admin_views/person/', data)
         non_form_errors = response.context['cl'].formset.non_form_errors()
@@ -1207,6 +1250,10 @@ class AdminViewListEditable(TestCase):
             "form-3-order": "0",
             "form-3-id": "4",
             "form-3-collector": "1",
+
+            # Ensure that the form processing understands this as a list_editable "Save"
+            # and not an action "Go".
+            "_save": "Save",
         }
         response = self.client.post('/test_admin/admin/admin_views/category/', data)
         # Successful post will redirect
@@ -1217,6 +1264,63 @@ class AdminViewListEditable(TestCase):
         self.failUnlessEqual(Category.objects.get(id=2).order, 13)
         self.failUnlessEqual(Category.objects.get(id=3).order, 1)
         self.failUnlessEqual(Category.objects.get(id=4).order, 0)
+
+    def test_list_editable_action_submit(self):
+        # List editable changes should not be executed if the action "Go" button is
+        # used to submit the form.
+        data = {
+            "form-TOTAL_FORMS": "3",
+            "form-INITIAL_FORMS": "3",
+            "form-MAX_NUM_FORMS": "0",
+
+            "form-0-gender": "1",
+            "form-0-id": "1",
+
+            "form-1-gender": "2",
+            "form-1-id": "2",
+
+            "form-2-alive": "checked",
+            "form-2-gender": "1",
+            "form-2-id": "3",
+
+            "index": "0",
+            "_selected_action": [u'3'],
+            "action": [u'', u'delete_selected'],
+        }
+        self.client.post('/test_admin/admin/admin_views/person/', data)
+
+        self.failUnlessEqual(Person.objects.get(name="John Mauchly").alive, True)
+        self.failUnlessEqual(Person.objects.get(name="Grace Hopper").gender, 1)
+
+    def test_list_editable_action_choices(self):
+        # List editable changes should be executed if the "Save" button is
+        # used to submit the form - any action choices should be ignored.
+        data = {
+            "form-TOTAL_FORMS": "3",
+            "form-INITIAL_FORMS": "3",
+            "form-MAX_NUM_FORMS": "0",
+
+            "form-0-gender": "1",
+            "form-0-id": "1",
+
+            "form-1-gender": "2",
+            "form-1-id": "2",
+
+            "form-2-alive": "checked",
+            "form-2-gender": "1",
+            "form-2-id": "3",
+
+            "_save": "Save",
+            "_selected_action": [u'1'],
+            "action": [u'', u'delete_selected'],
+        }
+        self.client.post('/test_admin/admin/admin_views/person/', data)
+
+        self.failUnlessEqual(Person.objects.get(name="John Mauchly").alive, False)
+        self.failUnlessEqual(Person.objects.get(name="Grace Hopper").gender, 2)
+
+
+
 
 class AdminSearchTest(TestCase):
     fixtures = ['admin-views-users','multiple-child-classes']
@@ -1945,7 +2049,7 @@ class NeverCacheTests(TestCase):
 
     def testJsi18n(self):
         "Check the never-cache status of the Javascript i18n view"
-        response = self.client.get('/test_admin/jsi18n/')
+        response = self.client.get('/test_admin/admin/jsi18n/')
         self.failUnlessEqual(get_max_age(response), None)
 
 
