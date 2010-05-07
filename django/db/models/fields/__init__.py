@@ -78,7 +78,7 @@ class Field(object):
             serialize=True, unique_for_date=None, unique_for_month=None,
             unique_for_year=None, choices=None, help_text='', db_column=None,
             db_tablespace=None, auto_created=False, validators=[],
-            error_messages=None, index_descending=False):
+            error_messages=None):
         self.name = name
         self.verbose_name = verbose_name
         self.primary_key = primary_key
@@ -99,7 +99,6 @@ class Field(object):
         self.db_column = db_column
         self.db_tablespace = db_tablespace or settings.DEFAULT_INDEX_TABLESPACE
         self.auto_created = auto_created
-        self.index_descending=index_descending
 
         # Set db_index to True if the field has a relationship and doesn't explicitly set db_index.
         self.db_index = db_index
