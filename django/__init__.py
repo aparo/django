@@ -1,5 +1,7 @@
 VERSION = (1, 2, 0, 'rc', 1)
 
+MODIFIED = True
+
 def get_version():
     version = '%s.%s' % (VERSION[0], VERSION[1])
     if VERSION[2]:

@@ -195,9 +195,13 @@ class CharField(Field):
         return smart_unicode(value)
 
     def widget_attrs(self, widget):
+        attrs = {}
         if self.max_length is not None and isinstance(widget, (TextInput, PasswordInput)):
             # The HTML attribute is maxlength, not max_length.
-            return {'maxlength': str(self.max_length)}
+            attrs['maxlength'] = str(self.max_length)
+        if self.required and  isinstance(widget, (TextInput, PasswordInput)):
+            attrs['required'] = "required"
+        return attrs
 
 class IntegerField(Field):
     default_error_messages = {
@@ -207,8 +211,9 @@ class IntegerField(Field):
     }
 
     def __init__(self, max_value=None, min_value=None, *args, **kwargs):
+        self.max_value = max_value
+        self.min_value = min_value
         super(IntegerField, self).__init__(*args, **kwargs)
-
         if max_value is not None:
             self.validators.append(validators.MaxValueValidator(max_value))
         if min_value is not None:
@@ -229,6 +234,16 @@ class IntegerField(Field):
         except (ValueError, TypeError):
             raise ValidationError(self.error_messages['invalid'])
         return value
+
+    def widget_attrs(self, widget):
+        attrs = {} 
+        if self.max_value is not None and isinstance(widget, TextInput):
+            attrs['max'] = str(self.max_value)
+        if self.min_value is not None and isinstance(widget, TextInput):
+            attrs['min'] = str(self.min_value)
+        if self.required and  isinstance(widget, (TextInput, PasswordInput)):
+            attrs['required'] = "required"
+        return attrs
 
 class FloatField(IntegerField):
     default_error_messages = {
@@ -423,6 +438,15 @@ class RegexField(CharField):
         self.regex = regex
         self.validators.append(validators.RegexValidator(regex=regex))
 
+    def widget_attrs(self, widget):
+        attrs = {}
+        if self.max_length is not None and isinstance(widget, (TextInput, PasswordInput)):
+            # The HTML attribute is maxlength, not max_length.
+            attrs['maxlength'] = str(self.max_length)
+        if self.required and  isinstance(widget, (TextInput, PasswordInput)):
+            attrs['required'] = "required"
+        return attrs
+    
 class EmailField(CharField):
     default_error_messages = {
         'invalid': _(u'Enter a valid e-mail address.'),

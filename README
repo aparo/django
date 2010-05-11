@@ -10,6 +10,12 @@ Future backends to support are:
 - ...
 
 
+IMPORTANT COMMITS:
+------------------
+
+- http://github.com/aparo/django/commit/62baf86ff872b3a271619a4327d7b08180c89337 allows to redefin the king of autofield in DatabaseOperations of an engine
+
+
 
 All documentation is in the "docs" directory and online at
 http://docs.djangoproject.com/en/dev/. If you're just getting started, here's
