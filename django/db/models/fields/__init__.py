@@ -476,9 +476,12 @@ class AutoField(Field):
         return value
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        # Casts dates into the format expected by the backend
+        # Casts dates/ids into the format expected by the backend
+        from django.db import connections
         if not prepared:
             value = self.get_prep_value(value)
+        if connection.alias != self.model.objects.db:
+            connection = connections[self.model.objects.db]
         return connection.ops.value_to_db_auto(value)
 
     def contribute_to_class(self, cls, name):
