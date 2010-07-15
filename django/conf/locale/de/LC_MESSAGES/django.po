@@ -8,11 +8,6 @@ msgstr ""
 "Project-Id-Version: Django\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2010-05-13 15:30+0200\n"
-<<<<<<< HEAD
-"POT-Creation-Date: 2010-04-26 15:34+0200\n"
-=======
-"POT-Creation-Date: 2010-05-05 00:38+0200\n"
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 "PO-Revision-Date: 2010-04-26 13:53+0100\n"
 "Last-Translator: Jannis Leidel <jannis@leidel.info>\n"
 "Language-Team: \n"
@@ -69,13 +64,10 @@ msgid "English"
 msgstr "Englisch"
 
 #: conf/global_settings.py:55
-<<<<<<< HEAD
 msgid "Spanish"
 msgstr "Spanisch"
-=======
 msgid "British English"
 msgstr "Britisches Englisch"
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 
 #: conf/global_settings.py:56
 msgid "Spanish"
@@ -85,7 +77,6 @@ msgstr "Spanisch"
 msgid "Argentinean Spanish"
 msgstr "Argentinisches Spanisch"
 
-<<<<<<< HEAD
 #: conf/global_settings.py:57
 msgid "Estonian"
 msgstr "Estnisch"
@@ -259,7 +250,6 @@ msgid "Traditional Chinese"
 msgstr "Traditionelles Chinesisch"
 
 #: contrib/admin/actions.py:52
-=======
 #: conf/global_settings.py:58
 msgid "Estonian"
 msgstr "Estnisch"
@@ -449,24 +439,20 @@ msgid "Traditional Chinese"
 msgstr "Traditionelles Chinesisch"
 
 #: contrib/admin/actions.py:48
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Successfully deleted %(count)d %(items)s."
 msgstr "Erfolgreich %(count)d %(items)s gelöscht."
 
-<<<<<<< HEAD
 #: contrib/admin/actions.py:59 contrib/admin/options.py:1100
 msgid "Are you sure?"
 msgstr "Sind Sie sicher?"
 
 #: contrib/admin/actions.py:77
-=======
 #: contrib/admin/actions.py:55 contrib/admin/options.py:1125
 msgid "Are you sure?"
 msgstr "Sind Sie sicher?"
 
 #: contrib/admin/actions.py:73
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Delete selected %(verbose_name_plural)s"
 msgstr "Ausgewählte %(verbose_name_plural)s löschen"
@@ -549,32 +535,15 @@ msgstr "Logeintrag"
 msgid "log entries"
 msgstr "Logeinträge"
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:142 contrib/admin/options.py:157
-msgid "None"
-msgstr "-"
-
-#: contrib/admin/options.py:563
-=======
 #: contrib/admin/options.py:138 contrib/admin/options.py:153
 msgid "None"
 msgstr "-"
 
 #: contrib/admin/options.py:559
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Changed %s."
 msgstr "%s geändert."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:563 contrib/admin/options.py:573
-#: contrib/comments/templates/comments/preview.html:16 db/models/base.py:844
-#: forms/models.py:562
-msgid "and"
-msgstr "und"
-
-#: contrib/admin/options.py:568
-=======
 #: contrib/admin/options.py:559 contrib/admin/options.py:569
 #: contrib/comments/templates/comments/preview.html:16 db/models/base.py:845
 #: forms/models.py:568
@@ -582,77 +551,44 @@ msgid "and"
 msgstr "und"
 
 #: contrib/admin/options.py:564
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Added %(name)s \"%(object)s\"."
 msgstr "%(name)s \"%(object)s\" hinzugefügt."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:572
-=======
 #: contrib/admin/options.py:568
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Changed %(list)s for %(name)s \"%(object)s\"."
 msgstr "%(list)s von %(name)s \"%(object)s\" geändert."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:577
-=======
 #: contrib/admin/options.py:573
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Deleted %(name)s \"%(object)s\"."
 msgstr "%(name)s \"%(object)s\" gelöscht."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:581
-msgid "No fields changed."
-msgstr "Keine Felder geändert."
-
-#: contrib/admin/options.py:647
-=======
 #: contrib/admin/options.py:577
 msgid "No fields changed."
 msgstr "Keine Felder geändert."
 
 #: contrib/admin/options.py:643
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "The %(name)s \"%(obj)s\" was added successfully."
 msgstr "%(name)s \"%(obj)s\" wurde erfolgreich hinzugefügt."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:651 contrib/admin/options.py:684
-msgid "You may edit it again below."
-msgstr "Das Element kann jetzt erneut bearbeitet werden."
-
-#: contrib/admin/options.py:661 contrib/admin/options.py:694
-=======
 #: contrib/admin/options.py:647 contrib/admin/options.py:680
 msgid "You may edit it again below."
 msgstr "Das Element kann jetzt erneut bearbeitet werden."
 
 #: contrib/admin/options.py:657 contrib/admin/options.py:690
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "You may add another %s below."
 msgstr "Es kann ein weiteres Element des Typs %s angelegt werden."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:682
-=======
 #: contrib/admin/options.py:678
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "The %(name)s \"%(obj)s\" was changed successfully."
 msgstr "%(name)s \"%(obj)s\" wurde erfolgreich geändert."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:690
-=======
 #: contrib/admin/options.py:686
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid ""
 "The %(name)s \"%(obj)s\" was added successfully. You may edit it again below."
@@ -660,11 +596,7 @@ msgstr ""
 "%(name)s \"%(obj)s\" wurde erfolgreich hinzugefügt. Das Element kann jetzt "
 "geändert werden."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:744
-=======
 #: contrib/admin/options.py:740 contrib/admin/options.py:997
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid ""
 "Items must be selected in order to perform actions on them. No items have "
 "been changed."
@@ -672,104 +604,60 @@ msgstr ""
 "Es müssen Objekte aus der Liste ausgewählt werden, um Aktionen "
 "durchzuführen. Es wurden keine Objekte geändert."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:762
-msgid "No action selected."
-msgstr "Keine Aktion ausgewählt."
-
-#: contrib/admin/options.py:842
-=======
 #: contrib/admin/options.py:759
 msgid "No action selected."
 msgstr "Keine Aktion ausgewählt."
 
 #: contrib/admin/options.py:840
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Add %s"
 msgstr "%s hinzufügen"
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:868 contrib/admin/options.py:1080
-=======
 #: contrib/admin/options.py:866 contrib/admin/options.py:1105
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%(name)s object with primary key %(key)r does not exist."
 msgstr ""
 "Das %(name)s-Objekt mit dem Primärschlüssel %(key)r ist nicht vorhanden."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:933
-=======
 #: contrib/admin/options.py:931
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Change %s"
 msgstr "%s ändern"
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:978
-msgid "Database error"
-msgstr "Datenbankfehler"
-
-#: contrib/admin/options.py:1014
-=======
 #: contrib/admin/options.py:977
 msgid "Database error"
 msgstr "Datenbankfehler"
 
 #: contrib/admin/options.py:1039
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%(count)s %(name)s was changed successfully."
 msgid_plural "%(count)s %(name)s were changed successfully."
 msgstr[0] "%(count)s \"%(name)s\" wurde erfolgreich geändert."
 msgstr[1] "%(count)s \"%(name)s\" wurden erfolgreich geändert."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:1041
-=======
 #: contrib/admin/options.py:1066
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%(total_count)s selected"
 msgid_plural "All %(total_count)s selected"
 msgstr[0] "%(total_count)s ausgewählt"
 msgstr[1] "Alle %(total_count)s ausgewählt"
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:1046
-=======
 #: contrib/admin/options.py:1071
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "0 of %(cnt)s selected"
 msgstr "0 von %(cnt)s ausgewählt"
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:1093
-=======
 #: contrib/admin/options.py:1118
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "The %(name)s \"%(obj)s\" was deleted successfully."
 msgstr "%(name)s \"%(obj)s\" wurde erfolgreich gelöscht."
 
-<<<<<<< HEAD
-#: contrib/admin/options.py:1130
-=======
 #: contrib/admin/options.py:1155
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Change history: %s"
 msgstr "Änderungsgeschichte: %s"
 
-<<<<<<< HEAD
-#: contrib/admin/sites.py:22 contrib/admin/views/decorators.py:14
-=======
 #: contrib/admin/sites.py:18 contrib/admin/views/decorators.py:14
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #: contrib/auth/forms.py:81
 msgid ""
 "Please enter a correct username and password. Note that both fields are case-"
@@ -778,19 +666,11 @@ msgstr ""
 "Bitte einen gültigen Benutzernamen und ein Passwort eingeben. Beide Felder "
 "berücksichtigen die Groß-/Kleinschreibung."
 
-<<<<<<< HEAD
-#: contrib/admin/sites.py:311 contrib/admin/views/decorators.py:40
-msgid "Please log in again, because your session has expired."
-msgstr "Bitte melden Sie sich erneut an, da Ihre Sitzung abgelaufen ist."
-
-#: contrib/admin/sites.py:318 contrib/admin/views/decorators.py:47
-=======
 #: contrib/admin/sites.py:307 contrib/admin/views/decorators.py:40
 msgid "Please log in again, because your session has expired."
 msgstr "Bitte melden Sie sich erneut an, da Ihre Sitzung abgelaufen ist."
 
 #: contrib/admin/sites.py:314 contrib/admin/views/decorators.py:47
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid ""
 "Looks like your browser isn't configured to accept cookies. Please enable "
 "cookies, reload this page, and try again."
@@ -798,49 +678,29 @@ msgstr ""
 "Ihr Browser scheint keine Cookies zu akzeptieren. Bitte aktivieren Sie diese "
 "und laden Sie die Seite neu."
 
-<<<<<<< HEAD
-#: contrib/admin/sites.py:334 contrib/admin/sites.py:340
-=======
 #: contrib/admin/sites.py:330 contrib/admin/sites.py:336
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #: contrib/admin/views/decorators.py:66
 msgid "Usernames cannot contain the '@' character."
 msgstr "Benutzernamen dürfen das Zeichen '@' nicht enthalten."
 
-<<<<<<< HEAD
-#: contrib/admin/sites.py:337 contrib/admin/views/decorators.py:62
-=======
 #: contrib/admin/sites.py:333 contrib/admin/views/decorators.py:62
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Your e-mail address is not your username. Try '%s' instead."
 msgstr ""
 "Die E-Mail-Adresse entspricht nicht Ihrem Benutzernamen. Bitte stattdessen '%"
 "s' versuchen."
 
-<<<<<<< HEAD
-#: contrib/admin/sites.py:393
-msgid "Site administration"
-msgstr "Website-Verwaltung"
-
-#: contrib/admin/sites.py:407 contrib/admin/templates/admin/login.html:26
-=======
 #: contrib/admin/sites.py:389
 msgid "Site administration"
 msgstr "Website-Verwaltung"
 
 #: contrib/admin/sites.py:403 contrib/admin/templates/admin/login.html:26
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #: contrib/admin/templates/registration/password_reset_complete.html:14
 #: contrib/admin/views/decorators.py:20
 msgid "Log in"
 msgstr "Anmelden"
 
-<<<<<<< HEAD
-#: contrib/admin/sites.py:452
-=======
 #: contrib/admin/sites.py:448
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%s administration"
 msgstr "%s-Verwaltung"
@@ -2277,13 +2137,8 @@ msgstr "gestern"
 msgid "Enter a postal code in the format NNNN or ANNNNAAA."
 msgstr "Bitte eine gültige Postleitzahl im Format NNNN oder ANNNNAAA eingeben."
 
-<<<<<<< HEAD
-#: contrib/localflavor/ar/forms.py:50 contrib/localflavor/br/forms.py:97
-#: contrib/localflavor/br/forms.py:136 contrib/localflavor/pe/forms.py:24
-=======
 #: contrib/localflavor/ar/forms.py:50 contrib/localflavor/br/forms.py:92
 #: contrib/localflavor/br/forms.py:131 contrib/localflavor/pe/forms.py:24
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #: contrib/localflavor/pe/forms.py:52
 msgid "This field requires only numbers."
 msgstr "Dieses Feld darf nur Ziffern enthalten."
@@ -2352,17 +2207,6 @@ msgstr ""
 msgid "Enter a 4 digit post code."
 msgstr "Bitte eine gültige vierstellige Postleitzahl eingeben."
 
-<<<<<<< HEAD
-#: contrib/localflavor/br/forms.py:22
-msgid "Enter a zip code in the format XXXXX-XXX."
-msgstr "Bitte eine gültige Postleitzahl im Format XXXXX-XXX eingeben."
-
-#: contrib/localflavor/br/forms.py:31
-msgid "Phone numbers must be in XX-XXXX-XXXX format."
-msgstr "Telefonnummern müssen das Format XX-XXXX-XXXX haben."
-
-#: contrib/localflavor/br/forms.py:59
-=======
 #: contrib/localflavor/br/forms.py:17
 msgid "Enter a zip code in the format XXXXX-XXX."
 msgstr "Bitte eine gültige Postleitzahl im Format XXXXX-XXX eingeben."
@@ -2372,27 +2216,11 @@ msgid "Phone numbers must be in XX-XXXX-XXXX format."
 msgstr "Telefonnummern müssen das Format XX-XXXX-XXXX haben."
 
 #: contrib/localflavor/br/forms.py:54
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid ""
 "Select a valid brazilian state. That state is not one of the available "
 "states."
 msgstr "Bitte einen gültigen brasilianischen Bundesstaat auswählen."
 
-<<<<<<< HEAD
-#: contrib/localflavor/br/forms.py:95
-msgid "Invalid CPF number."
-msgstr "Ungültige CPF-Nummer."
-
-#: contrib/localflavor/br/forms.py:96
-msgid "This field requires at most 11 digits or 14 characters."
-msgstr "Dieses Feld benötigt mindestens 11 Ziffern oder 14 Zeichen."
-
-#: contrib/localflavor/br/forms.py:135
-msgid "Invalid CNPJ number."
-msgstr "Ungültige CNPJ-Nummer."
-
-#: contrib/localflavor/br/forms.py:137
-=======
 #: contrib/localflavor/br/forms.py:90
 msgid "Invalid CPF number."
 msgstr "Ungültige CPF-Nummer."
@@ -2406,7 +2234,6 @@ msgid "Invalid CNPJ number."
 msgstr "Ungültige CNPJ-Nummer."
 
 #: contrib/localflavor/br/forms.py:132
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid "This field requires at least 14 digits"
 msgstr "Dieses Feld benötigt mindestens 14 Ziffern"
 
@@ -5073,17 +4900,6 @@ msgstr "Modell %(model)s mit dem Primärschlüssel %(pk)r ist nicht vorhanden."
 msgid "Foreign Key (type determined by related field)"
 msgstr "Fremdschlüssel (Typ definiert durch verknüpftes Feld)"
 
-<<<<<<< HEAD
-#: db/models/fields/related.py:923
-msgid "One-to-one relationship"
-msgstr "One-to-one-Beziehung"
-
-#: db/models/fields/related.py:983
-msgid "Many-to-many relationship"
-msgstr "Many-to-many-Beziehung"
-
-#: db/models/fields/related.py:1003
-=======
 #: db/models/fields/related.py:918
 msgid "One-to-one relationship"
 msgstr "One-to-one-Beziehung"
@@ -5093,18 +4909,13 @@ msgid "Many-to-many relationship"
 msgstr "Many-to-many-Beziehung"
 
 #: db/models/fields/related.py:1000
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid ""
 "Hold down \"Control\", or \"Command\" on a Mac, to select more than one."
 msgstr ""
 "Halten Sie die Strg-Taste (⌘ für Mac) während des Klickens gedrückt, um "
 "mehrere Einträge auszuwählen."
 
-<<<<<<< HEAD
-#: db/models/fields/related.py:1064
-=======
 #: db/models/fields/related.py:1061
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Please enter valid %(self)s IDs. The value %(value)r is invalid."
 msgid_plural ""
@@ -5188,11 +4999,7 @@ msgid "Select a valid choice. %(value)s is not one of the available choices."
 msgstr ""
 "Bitte eine gültige Auswahl treffen. %(value)s ist keine gültige Auswahl."
 
-<<<<<<< HEAD
-#: forms/fields.py:672 forms/fields.py:734 forms/models.py:995
-=======
 #: forms/fields.py:672 forms/fields.py:734 forms/models.py:1002
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid "Enter a list of values."
 msgstr "Bitte eine Liste mit Werten eingeben."
 
@@ -5200,30 +5007,18 @@ msgstr "Bitte eine Liste mit Werten eingeben."
 msgid "Order"
 msgstr "Reihenfolge"
 
-<<<<<<< HEAD
-#: forms/models.py:556
-=======
 #: forms/models.py:562
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Please correct the duplicate data for %(field)s."
 msgstr "Bitte die doppelten Daten für %(field)s korrigieren."
 
-<<<<<<< HEAD
-#: forms/models.py:560
-=======
 #: forms/models.py:566
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Please correct the duplicate data for %(field)s, which must be unique."
 msgstr ""
 "Bitte die doppelten Daten für %(field)s korrigieren, das eindeutig sein muss."
 
-<<<<<<< HEAD
-#: forms/models.py:566
-=======
 #: forms/models.py:572
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid ""
 "Please correct the duplicate data for %(field_name)s which must be unique "
@@ -5232,92 +5027,52 @@ msgstr ""
 "Bitte die doppelten Daten für %(field_name)s korrigieren, da es für %(lookup)"
 "s in %(date_field)s eindeutig sein muss."
 
-<<<<<<< HEAD
-#: forms/models.py:574
-msgid "Please correct the duplicate values below."
-msgstr "Bitte die unten aufgeführten doppelten Werte korrigieren."
-
-#: forms/models.py:848
-=======
 #: forms/models.py:580
 msgid "Please correct the duplicate values below."
 msgstr "Bitte die unten aufgeführten doppelten Werte korrigieren."
 
 #: forms/models.py:855
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 msgid "The inline foreign key did not match the parent instance primary key."
 msgstr ""
 "Der Inline-Fremdschlüssel passt nicht zum Primärschlüssel der übergeordneten "
 "Instanz."
 
-<<<<<<< HEAD
-#: forms/models.py:914
-msgid "Select a valid choice. That choice is not one of the available choices."
-msgstr "Bitte eine gültige Auswahl treffen. Dies ist keine gültige Auswahl."
-
-#: forms/models.py:996
-=======
 #: forms/models.py:921
 msgid "Select a valid choice. That choice is not one of the available choices."
 msgstr "Bitte eine gültige Auswahl treffen. Dies ist keine gültige Auswahl."
 
 #: forms/models.py:1003
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "Select a valid choice. %s is not one of the available choices."
 msgstr "Bitte eine gültige Auswahl treffen. %s ist keine gültige Auswahl."
 
-<<<<<<< HEAD
-#: forms/models.py:998
-=======
 #: forms/models.py:1005
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "\"%s\" is not a valid value for a primary key."
 msgstr "\"%s\" ist kein gültiger Wert für einen Primärschlüssel."
 
-<<<<<<< HEAD
-#: template/defaultfilters.py:781
-msgid "yes,no,maybe"
-msgstr "Ja,Nein,Vielleicht"
-
-#: template/defaultfilters.py:812
-=======
 #: template/defaultfilters.py:776
 msgid "yes,no,maybe"
 msgstr "Ja,Nein,Vielleicht"
 
 #: template/defaultfilters.py:807
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%(size)d byte"
 msgid_plural "%(size)d bytes"
 msgstr[0] "%(size)d Byte"
 msgstr[1] "%(size)d Bytes"
 
-<<<<<<< HEAD
-#: template/defaultfilters.py:814
-=======
 #: template/defaultfilters.py:809
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%.1f KB"
 msgstr "%.1f KB"
 
-<<<<<<< HEAD
-#: template/defaultfilters.py:816
-=======
 #: template/defaultfilters.py:811
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%.1f MB"
 msgstr "%.1f MB"
 
-<<<<<<< HEAD
-#: template/defaultfilters.py:817
-=======
 #: template/defaultfilters.py:812
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #, python-format
 msgid "%.1f GB"
 msgstr "%.1f GB"

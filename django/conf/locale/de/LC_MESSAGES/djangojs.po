@@ -7,11 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Django\n"
 "Report-Msgid-Bugs-To: \n"
-<<<<<<< HEAD
-"POT-Creation-Date: 2010-04-26 15:36+0200\n"
-=======
 "POT-Creation-Date: 2010-05-05 00:38+0200\n"
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 "PO-Revision-Date: 2008-06-23 21:02+0100\n"
 "Last-Translator: Jannis Leidel <jannis@leidel.info>\n"
 "Language-Team: \n"
@@ -50,19 +46,13 @@ msgstr "Auswahl treffen und Klick auf"
 msgid "Clear all"
 msgstr "Alles abwählen"
 
-<<<<<<< HEAD
-#: contrib/admin/media/js/actions.js:17
-=======
 #: contrib/admin/media/js/actions.js:18
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #: contrib/admin/media/js/actions.min.js:1
 msgid "%(sel)s of %(cnt)s selected"
 msgid_plural "%(sel)s of %(cnt)s selected"
 msgstr[0] "%(sel)s von %(cnt)s ausgewählt"
 msgstr[1] "%(sel)s von %(cnt)s ausgewählt"
 
-<<<<<<< HEAD
-=======
 #: contrib/admin/media/js/actions.js:109
 #: contrib/admin/media/js/actions.min.js:5
 msgid ""
@@ -95,7 +85,6 @@ msgstr ""
 "Feldern vorgenommen. Sie wollten wahrscheinlich auf 'Ausführen' und nicht "
 "auf 'Speichern' klicken."
 
->>>>>>> 94f8e324c64a21bb127aba4ca2e481b380e750e2
 #: contrib/admin/media/js/calendar.js:24
 #: contrib/admin/media/js/dateparse.js:32
 msgid ""

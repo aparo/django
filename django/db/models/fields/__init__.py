@@ -485,6 +485,7 @@ class AutoField(Field):
 
     def get_db_prep_value(self, value, connection, prepared=False):
         # Casts AutoField into the format expected by the backend
+        from django.db import connections
         if not prepared:
             value = self.get_prep_value(value)
         if connection.alias != self.model.objects.db:
