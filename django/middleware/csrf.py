@@ -62,6 +62,9 @@ class CsrfViewMiddleware(object):
     tag.
     """
     def process_view(self, request, callback, callback_args, callback_kwargs):
+        if getattr(callback, 'csrf_exempt', False):
+            return None
+
         if getattr(request, 'csrf_processing_done', False):
             return None
 

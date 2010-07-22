@@ -64,8 +64,6 @@ msgid "English"
 msgstr "Englisch"
 
 #: conf/global_settings.py:55
-msgid "Spanish"
-msgstr "Spanisch"
 msgid "British English"
 msgstr "Britisches Englisch"
 
@@ -77,179 +75,6 @@ msgstr "Spanisch"
 msgid "Argentinean Spanish"
 msgstr "Argentinisches Spanisch"
 
-#: conf/global_settings.py:57
-msgid "Estonian"
-msgstr "Estnisch"
-
-#: conf/global_settings.py:58
-msgid "Basque"
-msgstr "Baskisch"
-
-#: conf/global_settings.py:59
-msgid "Persian"
-msgstr "Persisch"
-
-#: conf/global_settings.py:60
-msgid "Finnish"
-msgstr "Finnisch"
-
-#: conf/global_settings.py:61
-msgid "French"
-msgstr "Französisch"
-
-#: conf/global_settings.py:62
-msgid "Frisian"
-msgstr "Friesisch"
-
-#: conf/global_settings.py:63
-msgid "Irish"
-msgstr "Irisch"
-
-#: conf/global_settings.py:64
-msgid "Galician"
-msgstr "Galicisch"
-
-#: conf/global_settings.py:65
-msgid "Hebrew"
-msgstr "Hebräisch"
-
-#: conf/global_settings.py:66
-msgid "Hindi"
-msgstr "Hindi"
-
-#: conf/global_settings.py:67
-msgid "Croatian"
-msgstr "Kroatisch"
-
-#: conf/global_settings.py:68
-msgid "Hungarian"
-msgstr "Ungarisch"
-
-#: conf/global_settings.py:69
-msgid "Icelandic"
-msgstr "Isländisch"
-
-#: conf/global_settings.py:70
-msgid "Italian"
-msgstr "Italienisch"
-
-#: conf/global_settings.py:71
-msgid "Japanese"
-msgstr "Japanisch"
-
-#: conf/global_settings.py:72
-msgid "Georgian"
-msgstr "Georgisch"
-
-#: conf/global_settings.py:73
-msgid "Khmer"
-msgstr "Khmer"
-
-#: conf/global_settings.py:74
-msgid "Kannada"
-msgstr "Kannada"
-
-#: conf/global_settings.py:75
-msgid "Korean"
-msgstr "Koreanisch"
-
-#: conf/global_settings.py:76
-msgid "Lithuanian"
-msgstr "Litauisch"
-
-#: conf/global_settings.py:77
-msgid "Latvian"
-msgstr "Lettisch"
-
-#: conf/global_settings.py:78
-msgid "Macedonian"
-msgstr "Mazedonisch"
-
-#: conf/global_settings.py:79
-msgid "Dutch"
-msgstr "Holländisch"
-
-#: conf/global_settings.py:80
-msgid "Norwegian"
-msgstr "Norwegisch"
-
-#: conf/global_settings.py:81
-msgid "Polish"
-msgstr "Polnisch"
-
-#: conf/global_settings.py:82
-msgid "Portuguese"
-msgstr "Portugiesisch"
-
-#: conf/global_settings.py:83
-msgid "Brazilian Portuguese"
-msgstr "Brasilianisches Portugiesisch"
-
-#: conf/global_settings.py:84
-msgid "Romanian"
-msgstr "Rumänisch"
-
-#: conf/global_settings.py:85
-msgid "Russian"
-msgstr "Russisch"
-
-#: conf/global_settings.py:86
-msgid "Slovak"
-msgstr "Slowakisch"
-
-#: conf/global_settings.py:87
-msgid "Slovenian"
-msgstr "Slowenisch"
-
-#: conf/global_settings.py:88
-msgid "Albanian"
-msgstr "Albanisch"
-
-#: conf/global_settings.py:89
-msgid "Serbian"
-msgstr "Serbisch"
-
-#: conf/global_settings.py:90
-msgid "Serbian Latin"
-msgstr "Serbisch (Latein)"
-
-#: conf/global_settings.py:91
-msgid "Swedish"
-msgstr "Schwedisch"
-
-#: conf/global_settings.py:92
-msgid "Tamil"
-msgstr "Tamilisch"
-
-#: conf/global_settings.py:93
-msgid "Telugu"
-msgstr "Telugisch"
-
-#: conf/global_settings.py:94
-msgid "Thai"
-msgstr "Thailändisch"
-
-#: conf/global_settings.py:95
-msgid "Turkish"
-msgstr "Türkisch"
-
-#: conf/global_settings.py:96
-msgid "Ukrainian"
-msgstr "Ukrainisch"
-
-#: conf/global_settings.py:97
-msgid "Vietnamese"
-msgstr "Vietnamesisch"
-
-#: conf/global_settings.py:98
-msgid "Simplified Chinese"
-msgstr "Vereinfachtes Chinesisch"
-
-#: conf/global_settings.py:99
-msgid "Traditional Chinese"
-msgstr "Traditionelles Chinesisch"
-
-#: contrib/admin/actions.py:52
 #: conf/global_settings.py:58
 msgid "Estonian"
 msgstr "Estnisch"
@@ -443,11 +268,6 @@ msgstr "Traditionelles Chinesisch"
 msgid "Successfully deleted %(count)d %(items)s."
 msgstr "Erfolgreich %(count)d %(items)s gelöscht."
 
-#: contrib/admin/actions.py:59 contrib/admin/options.py:1100
-msgid "Are you sure?"
-msgstr "Sind Sie sicher?"
-
-#: contrib/admin/actions.py:77
 #: contrib/admin/actions.py:55 contrib/admin/options.py:1125
 msgid "Are you sure?"
 msgstr "Sind Sie sicher?"
@@ -788,19 +608,6 @@ msgstr "Ausgewählte Aktion ausführen"
 #: contrib/admin/templates/admin/actions.html:4
 msgid "Go"
 msgstr "Ausführen"
-
-#: contrib/admin/templates/admin/actions.html:11
-msgid "Click here to select the objects across all pages"
-msgstr "Hier klicken, um die Objekte aller Seiten auszuwählen"
-
-#: contrib/admin/templates/admin/actions.html:11
-#, python-format
-msgid "Select all %(total_count)s %(module_name)s"
-msgstr "Alle %(total_count)s %(module_name)s auswählen"
-
-#: contrib/admin/templates/admin/actions.html:13
-msgid "Clear selection"
-msgstr "Auswahl widerrufen"
 
 #: contrib/admin/templates/admin/actions.html:11
 msgid "Click here to select the objects across all pages"
