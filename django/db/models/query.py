@@ -1286,6 +1286,7 @@ def delete_objects(seen_objs, using):
     Iterate through a list of seen classes, and remove any instances that are
     referred to.
     """
+    
     connection = connections[using]
     if not transaction.is_managed(using=using):
         transaction.enter_transaction_management(using=using)
