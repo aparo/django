@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import management
 from django.db import connections, router, DEFAULT_DB_ALIAS
+from django.db.models import signals
 from django.db.utils import ConnectionRouter
 from django.test import TestCase
 
@@ -23,7 +24,7 @@ class QueryTestCase(TestCase):
     multi_db = True
 
     def test_db_selection(self):
-        "Check that querysets will use the default databse by default"
+        "Check that querysets will use the default database by default"
         self.assertEquals(Book.objects.db, DEFAULT_DB_ALIAS)
         self.assertEquals(Book.objects.all().db, DEFAULT_DB_ALIAS)
 
@@ -1220,7 +1221,7 @@ class RouterTestCase(TestCase):
 
         mark = Person.objects.using('default').create(pk=2, name="Mark Pilgrim")
 
-        # Now save back onto the usual databse.
+        # Now save back onto the usual database.
         # This simulates master/slave - the objects exist on both database,
         # but the _state.db is as it is for all other tests.
         pro.save(using='default')
@@ -1569,10 +1570,30 @@ class UserProfileTestCase(TestCase):
         self.assertEquals(alice.get_profile().flavor, 'chocolate')
         self.assertEquals(bob.get_profile().flavor, 'crunchy frog')
 
+class AntiPetRouter(object):
+    # A router that only expresses an opinion on syncdb,
+    # passing pets to the 'other' database
+
+    def allow_syncdb(self, db, model):
+        "Make sure the auth app only appears on the 'other' db"
+        if db == 'other':
+            return model._meta.object_name == 'Pet'
+        else:
+            return model._meta.object_name != 'Pet'
+        return None
 
 class FixtureTestCase(TestCase):
     multi_db = True
     fixtures = ['multidb-common', 'multidb']
+
+    def setUp(self):
+        # Install the anti-pet router
+        self.old_routers = router.routers
+        router.routers = [AntiPetRouter()]
+
+    def tearDown(self):
+        # Restore the 'other' database as an independent database
+        router.routers = self.old_routers
 
     def test_fixture_loading(self):
         "Multi-db fixtures are loaded correctly"
@@ -1611,6 +1632,14 @@ class FixtureTestCase(TestCase):
         except Book.DoesNotExist:
             self.fail('"The Definitive Guide to Django" should exist on both databases')
 
+    def test_pseudo_empty_fixtures(self):
+        "A fixture can contain entries, but lead to nothing in the database; this shouldn't raise an error (ref #14068)"
+        new_io = StringIO()
+        management.call_command('loaddata', 'pets', stdout=new_io, stderr=new_io)
+        command_output = new_io.getvalue().strip()
+        # No objects will actually be loaded
+        self.assertEqual(command_output, "Installed 0 object(s) (of 2) from 1 fixture(s)")
+
 class PickleQuerySetTestCase(TestCase):
     multi_db = True
 
@@ -1619,3 +1648,114 @@ class PickleQuerySetTestCase(TestCase):
             Book.objects.using(db).create(title='Dive into Python', published=datetime.date(2009, 5, 4))
             qs = Book.objects.all()
             self.assertEqual(qs.db, pickle.loads(pickle.dumps(qs)).db)
+
+
+class DatabaseReceiver(object):
+    """
+    Used in the tests for the database argument in signals (#13552)
+    """
+    def __call__(self, signal, sender, **kwargs):
+        self._database = kwargs['using']
+
+class WriteToOtherRouter(object):
+    """
+    A router that sends all writes to the other database.
+    """
+    def db_for_write(self, model, **hints):
+        return "other"
+
+class SignalTests(TestCase):
+    multi_db = True
+
+    def setUp(self):
+        self.old_routers = router.routers
+
+    def tearDown(self):
+        router.routser = self.old_routers
+
+    def _write_to_other(self):
+        "Sends all writes to 'other'."
+        router.routers = [WriteToOtherRouter()]
+
+    def _write_to_default(self):
+        "Sends all writes to the default DB"
+        router.routers = self.old_routers
+
+    def test_database_arg_save_and_delete(self):
+        """
+        Tests that the pre/post_save signal contains the correct database.
+        (#13552)
+        """
+        # Make some signal receivers
+        pre_save_receiver = DatabaseReceiver()
+        post_save_receiver = DatabaseReceiver()
+        pre_delete_receiver = DatabaseReceiver()
+        post_delete_receiver = DatabaseReceiver()
+        # Make model and connect receivers
+        signals.pre_save.connect(sender=Person, receiver=pre_save_receiver)
+        signals.post_save.connect(sender=Person, receiver=post_save_receiver)
+        signals.pre_delete.connect(sender=Person, receiver=pre_delete_receiver)
+        signals.post_delete.connect(sender=Person, receiver=post_delete_receiver)
+        p = Person.objects.create(name='Darth Vader')
+        # Save and test receivers got calls
+        p.save()
+        self.assertEqual(pre_save_receiver._database, DEFAULT_DB_ALIAS)
+        self.assertEqual(post_save_receiver._database, DEFAULT_DB_ALIAS)
+        # Delete, and test
+        p.delete()
+        self.assertEqual(pre_delete_receiver._database, DEFAULT_DB_ALIAS)
+        self.assertEqual(post_delete_receiver._database, DEFAULT_DB_ALIAS)
+        # Save again to a different database
+        p.save(using="other")
+        self.assertEqual(pre_save_receiver._database, "other")
+        self.assertEqual(post_save_receiver._database, "other")
+        # Delete, and test
+        p.delete(using="other")
+        self.assertEqual(pre_delete_receiver._database, "other")
+        self.assertEqual(post_delete_receiver._database, "other")
+
+    def test_database_arg_m2m(self):
+        """
+        Test that the m2m_changed signal has a correct database arg (#13552)
+        """
+        # Make a receiver
+        receiver = DatabaseReceiver()
+        # Connect it, and make the models
+        signals.m2m_changed.connect(receiver=receiver)
+
+        b = Book.objects.create(title="Pro Django",
+                                published=datetime.date(2008, 12, 16))
+
+        p = Person.objects.create(name="Marty Alchin")
+
+        # Test addition
+        b.authors.add(p)
+        self.assertEqual(receiver._database, DEFAULT_DB_ALIAS)
+        self._write_to_other()
+        b.authors.add(p)
+        self._write_to_default()
+        self.assertEqual(receiver._database, "other")
+
+        # Test removal
+        b.authors.remove(p)
+        self.assertEqual(receiver._database, DEFAULT_DB_ALIAS)
+        self._write_to_other()
+        b.authors.remove(p)
+        self._write_to_default()
+        self.assertEqual(receiver._database, "other")
+
+        # Test addition in reverse
+        p.book_set.add(b)
+        self.assertEqual(receiver._database, DEFAULT_DB_ALIAS)
+        self._write_to_other()
+        p.book_set.add(b)
+        self._write_to_default()
+        self.assertEqual(receiver._database, "other")
+
+        # Test clearing
+        b.authors.clear()
+        self.assertEqual(receiver._database, DEFAULT_DB_ALIAS)
+        self._write_to_other()
+        b.authors.clear()
+        self._write_to_default()
+        self.assertEqual(receiver._database, "other")

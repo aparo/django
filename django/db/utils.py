@@ -129,11 +129,10 @@ class ConnectionRouter(object):
                 except AttributeError:
                     # If the router doesn't have a method, skip to the next one.
                     pass
-#            try:
-#                return hints['instance']._state.db or DEFAULT_DB_ALIAS
-#            except KeyError:
-            #Forcing default database
-            return DEFAULT_DB_ALIAS
+            try:
+                return hints['instance']._state.db or DEFAULT_DB_ALIAS
+            except KeyError:
+                return DEFAULT_DB_ALIAS
         return _route_db
 
     db_for_read = _router_func('db_for_read')

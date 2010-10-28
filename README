@@ -1,22 +1,6 @@
 Django is a high-level Python Web framework that encourages rapid development
 and clean, pragmatic design.
 
-THIS IS A FORK TO TEST NON-RELATIONAL BACKENDS.
-
-Future backends to support are:
-- mongodb (wip) docs at docs/topics/db/mongodb.txt
-- gae (merging django-nonrel)
-- cassandra (future)
-- ...
-
-
-IMPORTANT COMMITS:
-------------------
-
-- http://github.com/aparo/django/commit/62baf86ff872b3a271619a4327d7b08180c89337 allows to redefin the king of autofield in DatabaseOperations of an engine
-
-
-
 All documentation is in the "docs" directory and online at
 http://docs.djangoproject.com/en/dev/. If you're just getting started, here's
 how we recommend you read the docs:

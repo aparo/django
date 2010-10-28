@@ -452,19 +452,23 @@ class Field(object):
         return getattr(obj, self.attname)
 
 class AutoField(Field):
-    description = _("Integer or string")
+    description = _("Integer")
 
     empty_strings_allowed = False
     default_error_messages = {
-        'invalid': _(u'This value must be an integer or string.'),
+        'invalid': _(u'This value must be an integer.'),
     }
     def __init__(self, *args, **kwargs):
         assert kwargs.get('primary_key', False) is True, "%ss must have primary_key=True." % self.__class__.__name__
         kwargs['blank'] = True
         Field.__init__(self, *args, **kwargs)
 
+    def get_internal_type(self):
+        return "AutoField"
+
     def related_db_type(self, connection):
         data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
+
         try:
             return connection.creation.data_types['RelatedAutoField'] % data
         except KeyError:
@@ -479,17 +483,12 @@ class AutoField(Field):
         pass
 
     def get_prep_value(self, value):
-        if value is None:
-            return None
         return value
 
     def get_db_prep_value(self, value, connection, prepared=False):
         # Casts AutoField into the format expected by the backend
-        from django.db import connections
         if not prepared:
             value = self.get_prep_value(value)
-        if connection.alias != self.model.objects.db:
-            connection = connections[self.model.objects.db]
         return connection.ops.value_to_db_auto(value)
 
     def contribute_to_class(self, cls, name):
@@ -635,7 +634,8 @@ class DateField(Field):
             raise exceptions.ValidationError(msg)
 
     def pre_save(self, model_instance, add):
-        if self.auto_now or (self.auto_now_add and add):
+        old_value = getattr(model_instance, self.attname)
+        if self.auto_now or (not old_value and self.auto_now_add and add):
             value = datetime.datetime.now()
             setattr(model_instance, self.attname, value)
             return value
@@ -811,6 +811,14 @@ class EmailField(CharField):
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = kwargs.get('max_length', 75)
         CharField.__init__(self, *args, **kwargs)
+
+    def formfield(self, **kwargs):
+        # As with CharField, this will cause email validation to be performed twice
+        defaults = {
+            'form_class': forms.EmailField,
+        }
+        defaults.update(kwargs)
+        return super(EmailField, self).formfield(**defaults)
 
 class FilePathField(Field):
     description = _("File path")
@@ -1097,7 +1105,8 @@ class TimeField(Field):
                 raise exceptions.ValidationError(self.error_messages['invalid'])
 
     def pre_save(self, model_instance, add):
-        if self.auto_now or (self.auto_now_add and add):
+        old_value = getattr(model_instance, self.attname)
+        if self.auto_now or (not old_value and self.auto_now_add and add):
             value = datetime.datetime.now().time()
             setattr(model_instance, self.attname, value)
             return value
@@ -1133,6 +1142,14 @@ class URLField(CharField):
         kwargs['max_length'] = kwargs.get('max_length', 200)
         CharField.__init__(self, verbose_name, name, **kwargs)
         self.validators.append(validators.URLValidator(verify_exists=verify_exists))
+
+    def formfield(self, **kwargs):
+        # As with CharField, this will cause URL validation to be performed twice
+        defaults = {
+            'form_class': forms.URLField,
+        }
+        defaults.update(kwargs)
+        return super(URLField, self).formfield(**defaults)
 
 class XMLField(TextField):
     description = _("XML text")

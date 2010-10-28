@@ -1,7 +1,5 @@
 VERSION = (1, 3, 0, 'alpha', 0)
 
-MODIFIED = True
-
 def get_version():
     version = '%s.%s' % (VERSION[0], VERSION[1])
     if VERSION[2]:
