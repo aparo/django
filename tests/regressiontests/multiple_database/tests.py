@@ -891,6 +891,28 @@ class QueryTestCase(TestCase):
         except ValueError:
             pass
 
+    def test_related_manager(self):
+        "Related managers return managers, not querysets"
+        mark = Person.objects.using('other').create(name="Mark Pilgrim")
+
+        # extra_arg is removed by the BookManager's implementation of
+        # create(); but the BookManager's implementation won't get called
+        # unless edited returns a Manager, not a queryset
+        mark.book_set.create(title="Dive into Python",
+                             published=datetime.date(2009, 5, 4),
+                             extra_arg=True)
+
+        mark.book_set.get_or_create(title="Dive into Python",
+                                    published=datetime.date(2009, 5, 4),
+                                    extra_arg=True)
+
+        mark.edited.create(title="Dive into Water",
+                           published=datetime.date(2009, 5, 4),
+                           extra_arg=True)
+
+        mark.edited.get_or_create(title="Dive into Water",
+                                  published=datetime.date(2009, 5, 4),
+                                  extra_arg=True)
 
 class TestRouter(object):
     # A test router. The behaviour is vaguely master/slave, but the
@@ -1548,13 +1570,17 @@ class AuthTestCase(TestCase):
         command_output = new_io.getvalue().strip()
         self.assertTrue('"email": "alice@example.com",' in command_output)
 
+_missing = object()
 class UserProfileTestCase(TestCase):
     def setUp(self):
-        self.old_auth_profile_module = getattr(settings, 'AUTH_PROFILE_MODULE', None)
+        self.old_auth_profile_module = getattr(settings, 'AUTH_PROFILE_MODULE', _missing)
         settings.AUTH_PROFILE_MODULE = 'multiple_database.UserProfile'
 
     def tearDown(self):
-        settings.AUTH_PROFILE_MODULE = self.old_auth_profile_module
+        if self.old_auth_profile_module is _missing:
+            del settings.AUTH_PROFILE_MODULE
+        else:
+            settings.AUTH_PROFILE_MODULE = self.old_auth_profile_module
 
     def test_user_profiles(self):
 

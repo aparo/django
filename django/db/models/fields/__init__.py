@@ -469,6 +469,10 @@ class AutoField(Field):
     def related_db_type(self, connection):
         data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
 
+
+    def to_python(self, value):
+        if value is None:
+            return value
         try:
             return connection.creation.data_types['RelatedAutoField'] % data
         except KeyError:
@@ -486,6 +490,8 @@ class AutoField(Field):
         return value
 
     def get_db_prep_value(self, value, connection, prepared=False):
+        if value is None:
+            return None
         # Casts AutoField into the format expected by the backend
         if not prepared:
             value = self.get_prep_value(value)
@@ -527,7 +533,7 @@ class BooleanField(Field):
         raise exceptions.ValidationError(self.error_messages['invalid'])
 
     def get_prep_lookup(self, lookup_type, value):
-        # Special-case handling for filters coming from a web request (e.g. the
+        # Special-case handling for filters coming from a Web request (e.g. the
         # admin interface). Only works for scalar values (not lists). If you're
         # passing in a list, you might as well make things the right type when
         # constructing the list.
@@ -634,9 +640,8 @@ class DateField(Field):
             raise exceptions.ValidationError(msg)
 
     def pre_save(self, model_instance, add):
-        old_value = getattr(model_instance, self.attname)
-        if self.auto_now or (not old_value and self.auto_now_add and add):
-            value = datetime.datetime.now()
+        if self.auto_now or (self.auto_now_add and add):
+            value = datetime.date.today()
             setattr(model_instance, self.attname, value)
             return value
         else:
@@ -722,6 +727,14 @@ class DateTimeField(DateField):
                                              **kwargs)
                 except ValueError:
                     raise exceptions.ValidationError(self.error_messages['invalid'])
+
+    def pre_save(self, model_instance, add):
+        if self.auto_now or (self.auto_now_add and add):
+            value = datetime.datetime.now()
+            setattr(model_instance, self.attname, value)
+            return value
+        else:
+            return super(DateTimeField, self).pre_save(model_instance, add)
 
     def get_prep_value(self, value):
         return self.to_python(value)
@@ -960,7 +973,7 @@ class NullBooleanField(Field):
         raise exceptions.ValidationError(self.error_messages['invalid'])
 
     def get_prep_lookup(self, lookup_type, value):
-        # Special-case handling for filters coming from a web request (e.g. the
+        # Special-case handling for filters coming from a Web request (e.g. the
         # admin interface). Only works for scalar values (not lists). If you're
         # passing in a list, you might as well make things the right type when
         # constructing the list.
@@ -1105,8 +1118,7 @@ class TimeField(Field):
                 raise exceptions.ValidationError(self.error_messages['invalid'])
 
     def pre_save(self, model_instance, add):
-        old_value = getattr(model_instance, self.attname)
-        if self.auto_now or (not old_value and self.auto_now_add and add):
+        if self.auto_now or (self.auto_now_add and add):
             value = datetime.datetime.now().time()
             setattr(model_instance, self.attname, value)
             return value

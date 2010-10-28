@@ -40,12 +40,12 @@ class Session(models.Model):
 
     For complete documentation on using Sessions in your code, consult
     the sessions documentation that is shipped with Django (also available
-    on the Django website).
+    on the Django Web site).
     """
     session_key = models.CharField(_('session key'), max_length=40,
                                    primary_key=True)
     session_data = models.TextField(_('session data'))
-    expire_date = models.DateTimeField(_('expire date'))
+    expire_date = models.DateTimeField(_('expire date'), db_index=True)
     objects = SessionManager()
 
     class Meta:
