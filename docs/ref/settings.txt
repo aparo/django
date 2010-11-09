@@ -1210,10 +1210,20 @@ Default: ``0``
 Number of digits grouped together on the integer part of a number. Common use
 is to display a thousand separator. If this setting is ``0``, then, no grouping
 will be applied to the number. If this setting is greater than ``0`` then the
-setting ``THOUSAND_SEPARATOR`` will be used as the separator between those
+setting :setting:`THOUSAND_SEPARATOR` will be used as the separator between those
 groups.
 
-See also ``THOUSAND_SEPARATOR``
+See also :setting:`THOUSAND_SEPARATOR`.
+
+.. setting:: PASSWORD_RESET_TIMEOUT_DAYS
+
+PASSWORD_RESET_TIMEOUT_DAYS
+---------------------------
+
+Default: ``3``
+
+The number of days a password reset link is valid for. Used by the
+:mod:`django.contrib.auth` password reset mechanism.
 
 .. setting:: PREPEND_WWW
 
@@ -1231,13 +1241,10 @@ used if :class:`~django.middleware.common.CommonMiddleware` is installed
 PROFANITIES_LIST
 ----------------
 
+Default: ``()`` (Empty tuple)
+
 A tuple of profanities, as strings, that will trigger a validation error when
 the ``hasNoProfanities`` validator is called.
-
-We don't list the default values here, because that would be profane. To see
-the default values, see the file `django/conf/global_settings.py`_.
-
-.. _django/conf/global_settings.py: http://code.djangoproject.com/browser/django/trunk/django/conf/global_settings.py
 
 .. setting:: RESTRUCTUREDTEXT_FILTER_SETTINGS
 
@@ -1490,7 +1497,7 @@ These callables take a request object as their argument and return a dictionary
 of items to be merged into the context.
 
 .. versionchanged:: 1.2
-   ``"django.contrib.messages.context_processors.messages"`` was added to the
+   ``django.contrib.messages.context_processors.messages`` was added to the
    default.  For more information, see the :doc:`messages documentation
    </ref/contrib/messages>`.
 
@@ -1498,6 +1505,12 @@ of items to be merged into the context.
     The auth context processor was moved in this release from its old location
     ``django.core.context_processors.auth`` to
     ``django.contrib.auth.context_processors.auth``.
+
+.. versionchanged:: 1.3
+    ``django.core.context_processors.media`` was replaced by 
+    :func:`django.contrib.staticfiles.context_processors.staticfiles` in the
+    default. For more information, see the :doc:`staticfiles documentation 
+    </ref/contrib/staticfiles>`.
 
 .. setting:: TEMPLATE_DEBUG
 

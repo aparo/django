@@ -21,10 +21,10 @@ from django.utils.translation import activate, deactivate, ugettext as _
 from django.utils.safestring import mark_safe
 from django.utils.tzinfo import LocalTimezone
 
-from context import context_tests
-from custom import custom_filters
-from parser import token_parsing, filter_parsing, variable_parsing
-from unicode import unicode_tests
+from context import ContextTests
+from custom import CustomTests
+from parser import ParserTests
+from unicode import UnicodeTests
 from nodelist import NodelistTest
 from smartif import *
 
@@ -34,16 +34,6 @@ except ImportError:
     pass # If setuptools isn't installed, that's fine. Just move on.
 
 import filters
-
-# Some other tests we would like to run
-__test__ = {
-    'unicode': unicode_tests,
-    'context': context_tests,
-    'token_parsing': token_parsing,
-    'filter_parsing': filter_parsing,
-    'variable_parsing': variable_parsing,
-    'custom_filters': custom_filters,
-}
 
 #################################
 # Custom template tag for tests #
@@ -646,6 +636,9 @@ class Templates(unittest.TestCase):
             'cycle14': ("{% cycle one two as foo %}{% cycle foo %}", {'one': '1','two': '2'}, '12'),
             'cycle15': ("{% for i in test %}{% cycle aye bee %}{{ i }},{% endfor %}", {'test': range(5), 'aye': 'a', 'bee': 'b'}, 'a0,b1,a2,b3,a4,'),
             'cycle16': ("{% cycle one|lower two as foo %}{% cycle foo %}", {'one': 'A','two': '2'}, 'a2'),
+            'cycle17': ("{% cycle 'a' 'b' 'c' as abc silent %}{% cycle abc %}{% cycle abc %}{% cycle abc %}{% cycle abc %}", {}, "abca"),
+            'cycle18': ("{% cycle 'a' 'b' 'c' as foo invalid_flag %}", {}, template.TemplateSyntaxError),
+            'cycle19': ("{% cycle 'a' 'b' as silent %}{% cycle silent %}", {}, "ab"),
 
             ### EXCEPTIONS ############################################################
 
@@ -1356,7 +1349,7 @@ class Templates(unittest.TestCase):
 class TemplateTagLoading(unittest.TestCase):
 
     def setUp(self):
-        self.old_path = sys.path
+        self.old_path = sys.path[:]
         self.old_apps = settings.INSTALLED_APPS
         self.egg_dir = '%s/eggs' % os.path.dirname(__file__)
         self.old_tag_modules = template.templatetags_modules
