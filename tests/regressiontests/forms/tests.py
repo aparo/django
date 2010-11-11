@@ -47,8 +47,6 @@ from localflavor.be import BETests
 
 from input_formats import *
 
-from input_formats import *
-
 __test__ = {
     'extra_tests': extra_tests,
     'form_tests': form_tests,

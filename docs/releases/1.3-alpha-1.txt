@@ -1,37 +1,44 @@
-============================================
-Django 1.3 release notes - UNDER DEVELOPMENT
-============================================
+================================
+Django 1.3 alpha 1 release notes
+================================
 
-This page documents release notes for the as-yet-unreleased Django
-1.3. As such, it's tentative and subject to change. It provides
-up-to-date information for those who are following trunk.
+November 11, 2010
 
-Django 1.3 includes a number of nifty `new features`_, lots of bug
-fixes, some minor `backwards incompatible changes`_ and an easy
-upgrade path from Django 1.2.
+Welcome to Django 1.3 alpha 1!
 
-.. _new features: `What's new in Django 1.3`_
+This is the first in a series of preview/development releases leading
+up to the eventual release of Django 1.3. This release is primarily
+targeted at developers who are interested in trying out new features
+and testing the Django codebase to help identify and resolve bugs
+prior to the final 1.3 release.
+
+As such, this release is *not* intended for production use, and any such use is
+discouraged.
+
+As of this alpha release, Django 1.3 contains a number of nifty `new
+features`_, lots of bug fixes, some minor `backwards incompatible
+changes`_ and an easy upgrade path from Django 1.2.
+
+.. _new features: `What's new in Django 1.3 alpha 1`_
 
 .. _backwards incompatible changes: backwards-incompatible-changes-1.3_
 
-What's new in Django 1.3
-========================
+What's new in Django 1.3 alpha 1
+================================
 
 Class-based views
 ~~~~~~~~~~~~~~~~~
 
 Django 1.3 adds a framework that allows you to use a class as a view.
 This means you can compose a view out of a collection of methods that
-can be subclassed and overridden to provide
+can be subclassed and overridden to provide analogs of all the old
+function-based generic views have been provided, along with a completely
+generic view base class that can be used as the basis for reusable
+applications that can be easily extended.
 
-Analogs of all the old function-based generic views have been
-provided, along with a completely generic view base class that can be
-used as the basis for reusable applications that can be easily
-extended.
-
-See :doc:`the documentation on Generic Views</topics/generic-views>`
-for more details. There is also a document to help you :doc:`convert
-your function-based generic views to class-based
+See :doc:`the documentation on Class-based Generic Views
+</topics/class-based-views>` for more details. There is also a document to
+help you :doc:`convert your function-based generic views to class-based
 views</topics/generic-views-migration>`.
 
 Logging
@@ -120,7 +127,8 @@ To compensate for this, the focus of the Django 1.3 development
 process has been on adding lots of smaller, long standing feature
 requests. These include:
 
-    * Improved tools for accessing and manipulating the current Site.
+    * Improved tools for accessing and manipulating the current Site via
+      :func:`django.contrib.sites.models.get_current_site`.
 
     * A :class:`~django.test.client.RequestFactory` for mocking
       requests in tests.
@@ -132,8 +140,8 @@ requests. These include:
 
 .. _backwards-incompatible-changes-1.3:
 
-Backwards-incompatible changes in 1.3
-=====================================
+Backwards-incompatible changes in 1.3 alpha 1
+=============================================
 
 PasswordInput default rendering behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -265,7 +273,7 @@ be removed entirely.
 
     For more details, see the documentation :doc:`Django's release process
     </internals/release-process>` and our :doc:`deprecation timeline
-    </internals/deprecation>`.`
+    </internals/deprecation>`.
 
 ``mod_python`` support
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -276,8 +284,8 @@ of active projects in its version control repositories, and its lead developer
 has shifted all of his efforts toward the lighter, slimmer, more stable, and
 more flexible ``mod_wsgi`` backend.
 
-If you are currently using the ``mod_python`` request handler, it is strongly
-encouraged you redeploy your Django instances using :doc:`mod_wsgi
+If you are currently using the ``mod_python`` request handler, you are strongly
+encouraged to redeploy your Django instances using :doc:`mod_wsgi
 </howto/deployment/modwsgi>`.
 
 Function-based generic views
@@ -318,3 +326,60 @@ and Ctrl-C test termination) have been made redundant. In view of this
 redundancy, :class:`~django.test.simple.DjangoTestRunner` has been
 turned into an empty placeholder class, and will be removed entirely
 in Django 1.5.
+
+The Django 1.3 roadmap
+======================
+
+Before the final Django 1.3 release, several other preview/development
+releases will be made available. The current schedule consists of at
+least the following:
+
+* Week of **November 29, 2010**: First Django 1.3 beta release. Final
+  feature freeze for Django 1.3.
+
+* Week of **January 10, 2011**: First Django 1.3 release
+  candidate. String freeze for translations.
+
+* Week of **January 17, 2011**: Django 1.3 final release.
+
+If necessary, additional alpha, beta or release-candidate packages
+will be issued prior to the final 1.3 release. Django 1.3 will be
+released approximately one week after the final release candidate.
+
+
+What you can do to help
+=======================
+
+In order to provide a high-quality 1.3 release, we need your help. Although this
+alpha release is, again, *not* intended for production use, you can help the
+Django team by trying out the alpha codebase in a safe test environment and
+reporting any bugs or issues you encounter. The Django ticket tracker is the
+central place to search for open issues:
+
+    * http://code.djangoproject.com/timeline
+
+Please open new tickets if no existing ticket corresponds to a problem you're
+running into.
+
+Additionally, discussion of Django development, including progress toward the
+1.3 release, takes place daily on the django-developers mailing list:
+
+    * http://groups.google.com/group/django-developers
+
+... and in the ``#django-dev`` IRC channel on ``irc.freenode.net``. If you're
+interested in helping out with Django's development, feel free to join the
+discussions there.
+
+Django's online documentation also includes pointers on how to contribute to
+Django:
+
+    * :doc:`How to contribute to Django </internals/contributing>`
+
+Contributions on any level -- developing code, writing documentation or simply
+triaging tickets and helping to test proposed bugfixes -- are always welcome and
+appreciated.
+
+Several development sprints will also be taking place before the 1.3
+release; these will typically be announced in advance on the
+django-developers mailing list, and anyone who wants to help is
+welcome to join in.

@@ -53,6 +53,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     supports_subqueries_in_group_by = True
     supports_timezones = False
     supports_bitwise_or = False
+    can_defer_constraint_checks = True
 
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "django.db.backends.oracle.compiler"
@@ -331,11 +332,11 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         'istartswith': "LIKE UPPER(TRANSLATE(%s USING NCHAR_CS)) ESCAPE TRANSLATE('\\' USING NCHAR_CS)",
         'iendswith': "LIKE UPPER(TRANSLATE(%s USING NCHAR_CS)) ESCAPE TRANSLATE('\\' USING NCHAR_CS)",
     }
-    oracle_version = None
 
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
+        self.oracle_version = None
         self.features = DatabaseFeatures(self)
         self.ops = DatabaseOperations()
         self.client = DatabaseClient(self)
@@ -348,9 +349,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def _connect_string(self):
         settings_dict = self.settings_dict
-        if len(settings_dict['HOST'].strip()) == 0:
+        if not settings_dict['HOST'].strip():
             settings_dict['HOST'] = 'localhost'
-        if len(settings_dict['PORT'].strip()) != 0:
+        if settings_dict['PORT'].strip():
             dsn = Database.makedsn(settings_dict['HOST'],
                                    int(settings_dict['PORT']),
                                    settings_dict['NAME'])
@@ -397,6 +398,28 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     # Oracle doesn't support savepoint commits.  Ignore them.
     def _savepoint_commit(self, sid):
         pass
+
+    def _commit(self):
+        if self.connection is not None:
+            try:
+                return self.connection.commit()
+            except Database.IntegrityError, e:
+                # In case cx_Oracle implements (now or in a future version)
+                # raising this specific exception
+                raise utils.IntegrityError, utils.IntegrityError(*tuple(e)), sys.exc_info()[2]
+            except Database.DatabaseError, e:
+                # cx_Oracle 5.0.4 raises a cx_Oracle.DatabaseError exception
+                # with the following attributes and values:
+                #  code = 2091
+                #  message = 'ORA-02091: transaction rolled back
+                #            'ORA-02291: integrity constraint (TEST_DJANGOTEST.SYS
+                #               _C00102056) violated - parent key not found'
+                # We convert that particular case to our IntegrityError exception
+                x = e.args[0]
+                if hasattr(x, 'code') and hasattr(x, 'message') \
+                   and x.code == 2091 and 'ORA-02291' in x.message:
+                    raise utils.IntegrityError, utils.IntegrityError(*tuple(e)), sys.exc_info()[2]
+                raise utils.DatabaseError, utils.DatabaseError(*tuple(e)), sys.exc_info()[2]
 
 
 class OracleParam(object):

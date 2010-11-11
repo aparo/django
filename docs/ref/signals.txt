@@ -242,9 +242,6 @@ Arguments sent with this signal:
     ``using``
         The database alias being used.
 
-    ``using``
-        The database alias being used.
-
 For example, if a ``Pizza`` can have multiple ``Topping`` objects, modeled
 like this:
 

@@ -469,10 +469,6 @@ class AutoField(Field):
     def related_db_type(self, connection):
         data = DictWrapper(self.__dict__, connection.ops.quote_name, "qn_")
 
-
-    def to_python(self, value):
-        if value is None:
-            return value
         try:
             return connection.creation.data_types['RelatedAutoField'] % data
         except KeyError:
