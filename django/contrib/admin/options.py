@@ -67,6 +67,7 @@ class BaseModelAdmin(object):
     prepopulated_fields = {}
     formfield_overrides = {}
     readonly_fields = ()
+    ordering = None
 
     def __init__(self):
         overrides = FORMFIELD_FOR_DBFIELD_DEFAULTS.copy()
@@ -189,6 +190,18 @@ class BaseModelAdmin(object):
     def get_readonly_fields(self, request, obj=None):
         return self.readonly_fields
 
+    def queryset(self, request):
+        """
+        Returns a QuerySet of all model instances that can be edited by the
+        admin site. This is used by changelist_view.
+        """
+        qs = self.model._default_manager.get_query_set()
+        # TODO: this should be handled by some parameter to the ChangeList.
+        ordering = self.ordering or () # otherwise we might try to *None, which is bad ;)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
+
 class ModelAdmin(BaseModelAdmin):
     "Encapsulates all admin options and functionality for a given model."
 
@@ -202,7 +215,6 @@ class ModelAdmin(BaseModelAdmin):
     date_hierarchy = None
     save_as = False
     save_on_top = False
-    ordering = None
     inlines = []
 
     # Custom templates (designed to be over-ridden in subclasses)
@@ -324,18 +336,6 @@ class ModelAdmin(BaseModelAdmin):
             'change': self.has_change_permission(request),
             'delete': self.has_delete_permission(request),
         }
-
-    def queryset(self, request):
-        """
-        Returns a QuerySet of all model instances that can be edited by the
-        admin site. This is used by changelist_view.
-        """
-        qs = self.model._default_manager.get_query_set()
-        # TODO: this should be handled by some parameter to the ChangeList.
-        ordering = self.ordering or () # otherwise we might try to *None, which is bad ;)
-        if ordering:
-            qs = qs.order_by(*ordering)
-        return qs
 
     def get_fieldsets(self, request, obj=None):
         "Hook for specifying fieldsets for the add form."
@@ -600,6 +600,12 @@ class ModelAdmin(BaseModelAdmin):
         Given a model instance save it to the database.
         """
         obj.save()
+
+    def delete_model(self, requet, obj):
+        """
+        Given a model instance delete it from the database.
+        """
+        obj.delete()
 
     def save_formset(self, request, form, formset, change):
         """
@@ -1122,7 +1128,7 @@ class ModelAdmin(BaseModelAdmin):
                 raise PermissionDenied
             obj_display = force_unicode(obj)
             self.log_deletion(request, obj, obj_display)
-            obj.delete()
+            self.delete_model(request, obj)
 
             self.message_user(request, _('The %(name)s "%(obj)s" was deleted successfully.') % {'name': force_unicode(opts.verbose_name), 'obj': force_unicode(obj_display)})
 
@@ -1175,34 +1181,6 @@ class ModelAdmin(BaseModelAdmin):
             "admin/%s/object_history.html" % app_label,
             "admin/object_history.html"
         ], context, context_instance=context_instance)
-
-    #
-    # DEPRECATED methods.
-    #
-    def __call__(self, request, url):
-        """
-        DEPRECATED: this is the old way of URL resolution, replaced by
-        ``get_urls()``. This only called by AdminSite.root(), which is also
-        deprecated.
-
-        Again, remember that the following code only exists for
-        backwards-compatibility. Any new URLs, changes to existing URLs, or
-        whatever need to be done up in get_urls(), above!
-
-        This function still exists for backwards-compatibility; it will be
-        removed in Django 1.3.
-        """
-        # Delegate to the appropriate method, based on the URL.
-        if url is None:
-            return self.changelist_view(request)
-        elif url == "add":
-            return self.add_view(request)
-        elif url.endswith('/history'):
-            return self.history_view(request, unquote(url[:-8]))
-        elif url.endswith('/delete'):
-            return self.delete_view(request, unquote(url[:-7]))
-        else:
-            return self.change_view(request, unquote(url))
 
 class InlineModelAdmin(BaseModelAdmin):
     """
@@ -1278,9 +1256,6 @@ class InlineModelAdmin(BaseModelAdmin):
         form = self.get_formset(request).form
         fields = form.base_fields.keys() + list(self.get_readonly_fields(request, obj))
         return [(None, {'fields': fields})]
-
-    def queryset(self, request):
-        return self.model._default_manager.all()
 
 class StackedInline(InlineModelAdmin):
     template = 'admin/edit_inline/stacked.html'

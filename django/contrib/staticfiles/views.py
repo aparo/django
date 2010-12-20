@@ -17,10 +17,10 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpRespons
 from django.template import loader, Template, Context, TemplateDoesNotExist
 from django.utils.http import http_date
 
-from django.contrib.staticfiles import finders
+from django.contrib.staticfiles import finders, utils
 
 
-def serve(request, path, document_root=None, show_indexes=False):
+def serve(request, path, document_root=None, show_indexes=False, insecure=False):
     """
     Serve static files below a given point in the directory structure or
     from locations inferred from the static files finders.
@@ -41,13 +41,15 @@ def serve(request, path, document_root=None, show_indexes=False):
     template hardcoded below, but if you'd like to override it, you can create
     a template called ``static/directory_index.html``.
     """
-    if not settings.DEBUG:
+    if not settings.DEBUG and not insecure:
         raise ImproperlyConfigured("The view to serve static files can only "
-                                   "be used if the DEBUG setting is True")
+                                   "be used if the DEBUG setting is True or "
+                                   "the --insecure option of 'runserver' is "
+                                   "used")
     if not document_root:
         absolute_path = finders.find(path)
         if not absolute_path:
-            raise Http404("%r could not be matched to a static file." % path)
+            raise Http404('"%s" could not be found' % path)
         document_root, path = os.path.split(absolute_path)
     # Clean up given path to only allow serving files below document_root.
     path = posixpath.normpath(urllib.unquote(path))
@@ -148,7 +150,10 @@ def was_modified_since(header=None, mtime=0, size=0):
             raise ValueError
         matches = re.match(r"^([^;]+)(; length=([0-9]+))?$", header,
                            re.IGNORECASE)
-        header_mtime = mktime_tz(parsedate_tz(matches.group(1)))
+        header_date = parsedate_tz(matches.group(1))
+        if header_date is None:
+            raise ValueError
+        header_mtime = mktime_tz(header_date)
         header_len = matches.group(3)
         if header_len and int(header_len) != size:
             raise ValueError

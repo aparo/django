@@ -22,14 +22,15 @@ Class-based views
 
 Django 1.3 adds a framework that allows you to use a class as a view.
 This means you can compose a view out of a collection of methods that
-can be subclassed and overridden to provide
+can be subclassed and overridden to provide common views of data without
+having to write too much code.
 
 Analogs of all the old function-based generic views have been
 provided, along with a completely generic view base class that can be
 used as the basis for reusable applications that can be easily
 extended.
 
-See :doc:`the documentation on Generic Views</topics/generic-views>`
+See :doc:`the documentation on Class-based Generic Views</topics/class-based-views>`
 for more details. There is also a document to help you :doc:`convert
 your function-based generic views to class-based
 views</topics/generic-views-migration>`.
@@ -44,6 +45,27 @@ have been added to Django's own code as well -- most notably, the
 error emails sent on a HTTP 500 server error are now handled as a
 logging activity. See :doc:`the documentation on Django's logging
 interface </topics/logging>` for more details.
+
+Extended static files handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Django 1.3 ships with a new contrib app ``'django.contrib.staticfiles'``
+to help developers handle the static media files (images, CSS, Javascript,
+etc.) that are needed to render a complete web page.
+
+In previous versions of Django, it was common to place static assets in
+:setting:`MEDIA_ROOT` along with user-uploaded files, and serve them both at
+:setting:`MEDIA_URL`. Part of the purpose of introducing the ``staticfiles``
+app is to make it easier to keep static files separate from user-uploaded
+files. For this reason, you will probably want to make your
+:setting:`MEDIA_ROOT` and :setting:`MEDIA_URL` different from your
+:setting:`STATIC_ROOT` and :setting:`STATIC_URL`. You will need to
+arrange for serving of files in :setting:`MEDIA_ROOT` yourself;
+``staticfiles`` does not deal with user-uploaded media at all.
+
+See the :doc:`reference documentation of the app </ref/contrib/staticfiles>`
+for more details or learn how to :doc:`manage static files
+</howto/static-files>`.
 
 ``unittest2`` support
 ~~~~~~~~~~~~~~~~~~~~~
@@ -99,13 +121,38 @@ value, protect, or do nothing.
 For more information, see the :attr:`~django.db.models.ForeignKey.on_delete`
 documentation.
 
-Contextual markers in translatable strings
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Contextual markers and comments for translatable strings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For translation strings with ambiguous meaning, you can now
 use the ``pgettext`` function to specify the context of the string.
 
-For more information, see :ref:`contextual-markers`
+And if you just want to add some information for translators, you
+can also add special translator comments in the source.
+
+For more information, see :ref:`contextual-markers` and
+:ref:`translator-comments`.
+
+TemplateResponse
+~~~~~~~~~~~~~~~~
+
+It can sometimes be beneficial to allow decorators or middleware to
+modify a response *after* it has been constructed by the view. For
+example, you may want to change the template that is used, or put
+additional data into the context.
+
+However, you can't (easily) modify the content of a basic
+:class:`~django.http.HttpResponse` after it has been constructed. To
+overcome this limitation, Django 1.3 adds a new
+:class:`~django.template.TemplateResponse` class. Unlike basic
+:class:`~django.http.HttpResponse` objects,
+:class:`~django.template.TemplateResponse` objects retain the details
+of the template and context that was provided by the view to compute
+the response. The final output of the response is not computed until
+it is needed, later in the response process.
+
+For more details, see the :ref:`documentation </ref/template-response>`
+on the :class:`~django.template.TemplateResponse` class.
 
 Everything else
 ~~~~~~~~~~~~~~~
@@ -129,6 +176,27 @@ requests. These include:
       :meth:`~django.test.client.Client.assertNumQueries` -- making it
       easier to test the database activity associated with a view.
 
+    * :ref:`Versioning <cache_versioning>`, :ref:`site-wide prefixing
+      <cache_key_prefixing>` and :ref:`transformation
+      <cache_key_transformation>` has been added to the cache API.
+
+    * Support for lookups spanning relations in admin's ``list_filter``.
+
+    * Support for _HTTPOnly cookies.
+
+    * :meth:`mail_admins()` and :meth:`mail_managers()` now support
+      easily attaching HTML content to messages.
+
+    * :class:`EmailMessage` now supports CC's.
+
+    * Error emails now include more of the detail and formatting of
+      the debug server error page.
+
+    * :meth:`simple_tag` now accepts a :attr:`takes_context` argument,
+      making it easier to write simple template tags that require
+      access to template context.
+
+.. _HTTPOnly: http://www.owasp.org/index.php/HTTPOnly
 
 .. _backwards-incompatible-changes-1.3:
 
@@ -138,24 +206,21 @@ Backwards-incompatible changes in 1.3
 PasswordInput default rendering behavior
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Prior to Django 1.3, a :class:`~django.forms.PasswordInput` would render
-data values like any other form. If a form submission raised an error,
-the password that was submitted would be reflected to the client as form
-data populating the form for resubmission.
+The :class:`~django.forms.PasswordInput` form widget, intended for use
+with form fields which represent passwords, accepts a boolean keyword
+argument ``render_value`` indicating whether to send its data back to
+the browser when displaying a submitted form with errors. Prior to
+Django 1.3, this argument defaulted to ``True``, meaning that the
+submitted password would be sent back to the browser as part of the
+form. Developers who wished to add a bit of additional security by
+excluding that value from the redisplayed form could instantiate a
+:class:`~django.forms.PasswordInput` passing ``render_value=False`` .
 
-This had the potential to leak passwords, as any failed password
-attempt would cause the password that was typed to be sent back to the
-client.
-
-In Django 1.3, the default behavior of
-:class:`~django.forms.PasswordInput` is to suppress the display of
-password values. This change doesn't alter the way form data is
-validated or handled. It only affects the user experience with
-passwords on a form when they make an error submitting form data (such
-as on unsuccessful logins, or when completing a registration form).
-
-If you want restore the pre-Django 1.3 behavior, you need to pass in a
-custom widget to your form that sets the ``render_value`` argument::
+Due to the sensitive nature of passwords, however, Django 1.3 takes
+this step automatically; the default value of ``render_value`` is now
+``False``, and developers who want the password value returned to the
+browser on a submission with errors (the previous behavior) must now
+explicitly indicate this. For example::
 
     class LoginForm(forms.Form):
         username = forms.CharField(max_length=100)
@@ -240,6 +305,36 @@ local flavors:
       has been removed from the province list in favor of the new
       official designation "Aceh (ACE)".
 
+FormSet updates
+~~~~~~~~~~~~~~~
+
+In Django 1.3 ``FormSet`` creation behavior is modified slightly. Historically
+the class didn't make a distinction between not being passed data and being
+passed empty dictionary. This was inconsistent with behavior in other parts of
+the framework. Starting with 1.3 if you pass in empty dictionary the
+``FormSet`` will raise a ``ValidationError``.
+
+For example with a ``FormSet``::
+
+    >>> class ArticleForm(Form):
+    ...     title = CharField()
+    ...     pub_date = DateField()
+    >>> ArticleFormSet = formset_factory(ArticleForm)
+
+the following code will raise a ``ValidationError``::
+
+    >>> ArticleFormSet({})
+    Traceback (most recent call last):
+    ...
+    ValidationError: [u'ManagementForm data is missing or has been tampered with']
+
+if you need to instantiate an empty ``FormSet``, don't pass in the data or use
+``None``::
+
+    >>> formset = ArticleFormSet()
+    >>> formset = ArticleFormSet(data=None)
+
+
 
 .. _deprecated-features-1.3:
 
@@ -265,7 +360,7 @@ be removed entirely.
 
     For more details, see the documentation :doc:`Django's release process
     </internals/release-process>` and our :doc:`deprecation timeline
-    </internals/deprecation>`.`
+    </internals/deprecation>`.
 
 ``mod_python`` support
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -276,9 +371,12 @@ of active projects in its version control repositories, and its lead developer
 has shifted all of his efforts toward the lighter, slimmer, more stable, and
 more flexible ``mod_wsgi`` backend.
 
-If you are currently using the ``mod_python`` request handler, it is strongly
-encouraged you redeploy your Django instances using :doc:`mod_wsgi
-</howto/deployment/modwsgi>`.
+If you are currently using the ``mod_python`` request handler, you
+should redeploy your Django projects using another request handler.
+:doc:`mod_wsgi </howto/deployment/modwsgi>` is the request handler
+recommended by the Django project, but :doc:`FastCGI
+</howto/deployment/fastcgi>` is also supported. Support for
+``mod_python`` deployment will be removed in Django 1.5.
 
 Function-based generic views
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -318,3 +416,68 @@ and Ctrl-C test termination) have been made redundant. In view of this
 redundancy, :class:`~django.test.simple.DjangoTestRunner` has been
 turned into an empty placeholder class, and will be removed entirely
 in Django 1.5.
+
+Changes to :ttag:`url` and :ttag:`ssi`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most template tags will allow you to pass in either constants or
+variables as arguments -- for example::
+
+    {% extends "base.html" %}
+
+allows you to specify a base template as a constant, but if you have a
+context variable ``templ`` that contains the value ``base.html``::
+
+    {% extends templ %}
+
+is also legal.
+
+However, due to an accident of history, the :ttag:`url` and
+:ttag:`ssi` are different. These tags use the second, quoteless
+syntax, but interpret the argument as a constant. This means it isn't
+possible to use a context variable as the target of a :ttag:`url` and
+:ttag:`ssi` tag.
+
+Django 1.3 marks the start of the process to correct this historical
+accident. Django 1.3 adds a new template library -- ``future`` -- that
+provides alternate implementations of the :ttag:`url` and :ttag:`ssi`
+template tags. This ``future`` library implement behavior that makes
+the handling of the first argument consistent with the handling of all
+other variables. So, an existing template that contains::
+
+    {% url sample %}
+
+should be replaced with::
+
+    {% load url from future %}
+    {% url 'sample' %}
+
+The tags implementing the old behavior have been deprecated, and in
+Django 1.5, the old behavior will be replaced with the new behavior.
+To ensure compatibility with future versions of Django, existing
+templates should be modified to use the new ``future`` libraries and
+syntax.
+
+Changes to the login methods of the admin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In previous version the admin app defined login methods in multiple locations
+and ignored the almost identical implementation in the already used auth app.
+A side effect of this duplication was the missing adoption of the changes made
+in r12634_ to support a broader set of characters for usernames.
+
+This release refactores the admin's login mechanism to use a subclass of the
+:class:`~django.contrib.auth.forms.AuthenticationForm` instead of a manual
+form validation. The previously undocumented method
+``'django.contrib.admin.sites.AdminSite.display_login_form'`` has been removed
+in favor of a new :attr:`~django.contrib.admin.AdminSite.login_form`
+attribute.
+
+.. _r12634: http://code.djangoproject.com/changeset/12634
+
+``reset`` and ``sqlreset`` management commands
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Those commands have been deprecated. The ``flush`` and ``sqlflush`` commands
+can be used to delete everything. You can also use ALTER TABLE or DROP TABLE
+statements manually.
