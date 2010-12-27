@@ -434,8 +434,6 @@ subclass::
 
 .. attribute:: ModelAdmin.list_editable
 
-    .. versionadded:: 1.1
-
     Set ``list_editable`` to a list of field names on the model which will
     allow editing on the change list page. That is, fields listed in
     ``list_editable`` will be displayed as form widgets on the change list
@@ -515,6 +513,16 @@ subclass::
 
         Django will only honor the first element in the list/tuple; any others
         will be ignored.
+
+.. attribute:: ModelAdmin.paginator
+
+    .. versionadded:: 1.3
+
+    The paginator class to be used for pagination. By default,
+    :class:`django.core.paginator.Paginator` is used. If the custom paginator
+    class doesn't have the same constructor interface as
+    :class:`django.core.paginator.Paginator`, you will also need to
+    provide an implementation for :meth:`ModelAdmin.get_paginator`.
 
 .. attribute:: ModelAdmin.prepopulated_fields
 
@@ -668,8 +676,6 @@ subclass::
 
 .. attribute:: ModelAdmin.formfield_overrides
 
-    .. versionadded:: 1.1
-
     This provides a quick-and-dirty way to override some of the
     :class:`~django.forms.Field` options for use in the admin.
     ``formfield_overrides`` is a dictionary mapping a field class to a dict of
@@ -712,15 +718,11 @@ subclass::
 
 .. attribute:: ModelAdmin.actions
 
-    .. versionadded:: 1.1
-
     A list of actions to make available on the change list page. See
     :doc:`/ref/contrib/admin/actions` for details.
 
 .. attribute:: ModelAdmin.actions_on_top
 .. attribute:: ModelAdmin.actions_on_bottom
-
-    .. versionadded:: 1.1
 
     Controls where on the page the actions bar appears. By default, the admin
     changelist displays actions at the top of the page (``actions_on_top = True;
@@ -833,8 +835,6 @@ templates used by the :class:`ModelAdmin` views:
 
 .. method:: ModelAdmin.get_urls(self)
 
-    .. versionadded:: 1.1
-
     The ``get_urls`` method on a ``ModelAdmin`` returns the URLs to be used for
     that ModelAdmin in the same way as a URLconf.  Therefore you can extend
     them as documented in :doc:`/topics/http/urls`::
@@ -893,8 +893,6 @@ templates used by the :class:`ModelAdmin` views:
 
 .. method:: ModelAdmin.formfield_for_foreignkey(self, db_field, request, **kwargs)
 
-    .. versionadded:: 1.1
-
     The ``formfield_for_foreignkey`` method on a ``ModelAdmin`` allows you to
     override the default formfield for a foreign key field. For example, to
     return a subset of objects for this foreign key field based on the user::
@@ -909,8 +907,6 @@ templates used by the :class:`ModelAdmin` views:
     field to only display the cars owned by the ``User`` instance.
 
 .. method:: ModelAdmin.formfield_for_manytomany(self, db_field, request, **kwargs)
-
-    .. versionadded:: 1.1
 
     Like the ``formfield_for_foreignkey`` method, the
     ``formfield_for_manytomany`` method can be overridden to change the
@@ -944,6 +940,13 @@ templates used by the :class:`ModelAdmin` views:
     Sends a message to the user. The default implementation creates a message
     using the :mod:`django.contrib.messages` backend. See the
     :ref:`custom ModelAdmin example <custom-admin-action>`.
+
+.. method:: ModelAdmin.get_paginator(queryset, per_page, orphans=0, allow_empty_first_page=True)
+
+    .. versionadded:: 1.3
+
+    Returns an instance of the paginator to use for this view. By default,
+    instantiates an instance of :attr:`paginator`.
 
 Other methods
 ~~~~~~~~~~~~~
@@ -1102,9 +1105,6 @@ adds some of its own (the shared features are actually defined in the
 - :attr:`~ModelAdmin.prepopulated_fields`
 - :attr:`~ModelAdmin.radio_fields`
 - :attr:`~InlineModelAdmin.raw_id_fields`
-
-.. versionadded:: 1.1
-
 - :meth:`~ModelAdmin.formfield_for_foreignkey`
 - :meth:`~ModelAdmin.formfield_for_manytomany`
 
@@ -1495,8 +1495,6 @@ creating your own ``AdminSite`` instance (see below), and changing the
     Python class), and register your models and ``ModelAdmin`` subclasses
     with it instead of using the default.
 
-    .. versionadded:: 1.1
-
     When constructing an instance of an ``AdminSite``, you are able to provide
     a unique instance name using the ``name`` argument to the constructor. This
     instance name is used to identify the instance, especially when
@@ -1590,10 +1588,6 @@ It's easy to create multiple instances of the admin site on the same
 Django-powered Web site. Just create multiple instances of ``AdminSite`` and
 root each one at a different URL.
 
-.. versionchanged:: 1.1
-    The method for hooking ``AdminSite`` instances into urls has changed in
-    Django 1.1.
-
 In this example, the URLs ``/basic-admin/`` and ``/advanced-admin/`` feature
 separate versions of the admin site -- using the ``AdminSite`` instances
 ``myproject.admin.basic_site`` and ``myproject.admin.advanced_site``,
@@ -1616,8 +1610,6 @@ is only necessary if you are using more than one ``AdminSite``.
 Adding views to admin sites
 ---------------------------
 
-.. versionadded:: 1.1
-
 Just like :class:`ModelAdmin`, :class:`AdminSite` provides a
 :meth:`~django.contrib.admin.ModelAdmin.get_urls()` method
 that can be overridden to define additional views for the site. To add
@@ -1636,8 +1628,6 @@ a pattern for your new view.
 
 Reversing Admin URLs
 ====================
-
-.. versionadded:: 1.1
 
 When an :class:`AdminSite` is deployed, the views provided by that site are
 accessible using Django's :ref:`URL reversing system <naming-url-patterns>`.

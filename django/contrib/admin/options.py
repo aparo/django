@@ -9,8 +9,11 @@ from django.contrib.admin.util import unquote, flatten_fieldsets, get_deleted_ob
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.db import models, transaction, router
-from django.db.models.fields import BLANK_CHOICE_DASH
+from django.db.models.related import RelatedObject
+from django.db.models.fields import BLANK_CHOICE_DASH, FieldDoesNotExist
+from django.db.models.sql.constants import LOOKUP_SEP, QUERY_TERMS
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render_to_response
 from django.utils.decorators import method_decorator
@@ -202,6 +205,43 @@ class BaseModelAdmin(object):
             qs = qs.order_by(*ordering)
         return qs
 
+    def lookup_allowed(self, lookup):
+        parts = lookup.split(LOOKUP_SEP)
+
+        # Last term in lookup is a query term (__exact, __startswith etc)
+        # This term can be ignored.
+        if len(parts) > 1 and parts[-1] in QUERY_TERMS:
+            parts.pop()
+
+        # Special case -- foo__id__exact and foo__id queries are implied
+        # if foo has been specificially included in the lookup list; so
+        # drop __id if it is the last part. However, first we need to find
+        # the pk attribute name.
+        model = self.model
+        pk_attr_name = None
+        for part in parts[:-1]:
+            field, _, _, _ = model._meta.get_field_by_name(part)
+            if hasattr(field, 'rel'):
+                model = field.rel.to
+                pk_attr_name = model._meta.pk.name
+            elif isinstance(field, RelatedObject):
+                model = field.model
+                pk_attr_name = model._meta.pk.name
+            else:
+                pk_attr_name = None
+        if pk_attr_name and len(parts) > 1 and parts[-1] == pk_attr_name:
+            parts.pop()
+
+        try:
+            self.model._meta.get_field_by_name(parts[0])
+        except FieldDoesNotExist:
+            # Lookups on non-existants fields are ok, since they're ignored
+            # later.
+            return True
+        else:
+            clean_lookup = LOOKUP_SEP.join(parts)
+            return clean_lookup in self.list_filter or clean_lookup == self.date_hierarchy
+
 class ModelAdmin(BaseModelAdmin):
     "Encapsulates all admin options and functionality for a given model."
 
@@ -215,6 +255,7 @@ class ModelAdmin(BaseModelAdmin):
     date_hierarchy = None
     save_as = False
     save_on_top = False
+    paginator = Paginator
     inlines = []
 
     # Custom templates (designed to be over-ridden in subclasses)
@@ -419,6 +460,9 @@ class ModelAdmin(BaseModelAdmin):
     def get_formsets(self, request, obj=None):
         for inline in self.inline_instances:
             yield inline.get_formset(request, obj)
+
+    def get_paginator(self, request, queryset, per_page, orphans=0, allow_empty_first_page=True):
+        return self.paginator(queryset, per_page, orphans, allow_empty_first_page)
 
     def log_addition(self, request, object):
         """
@@ -975,8 +1019,9 @@ class ModelAdmin(BaseModelAdmin):
 
         ChangeList = self.get_changelist(request)
         try:
-            cl = ChangeList(request, self.model, list_display, self.list_display_links, self.list_filter,
-                self.date_hierarchy, self.search_fields, self.list_select_related, self.list_per_page, self.list_editable, self)
+            cl = ChangeList(request, self.model, list_display, self.list_display_links,
+                self.list_filter, self.date_hierarchy, self.search_fields,
+                self.list_select_related, self.list_per_page, self.list_editable, self)
         except IncorrectLookupParameters:
             # Wacky lookup parameters were given, so redirect to the main
             # changelist page, without parameters, and pass an 'invalid=1'

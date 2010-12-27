@@ -2,7 +2,6 @@ import sys
 import time
 
 from django.conf import settings
-from django.core.management import call_command
 
 # The prefix to put on the default database name when creating
 # the test database.
@@ -338,6 +337,9 @@ class BaseDatabaseCreation(object):
         Creates a test database, prompting the user for confirmation if the
         database already exists. Returns the name of the test database created.
         """
+        # Don't import django.core.management if it isn't needed.
+        from django.core.management import call_command
+
         test_database_name = self._get_test_db_name()
 
         if verbosity >= 1:
@@ -359,12 +361,14 @@ class BaseDatabaseCreation(object):
         # (unless you really ask to be flooded)
         call_command('syncdb', verbosity=max(verbosity - 1, 0), interactive=False, database=self.connection.alias)
 
-        if settings.CACHE_BACKEND.startswith('db://'):
-            from django.core.cache import parse_backend_uri, cache
-            from django.db import router
-            if router.allow_syncdb(self.connection.alias, cache.cache_model_class):
-                _, cache_name, _ = parse_backend_uri(settings.CACHE_BACKEND)
-                call_command('createcachetable', cache_name, database=self.connection.alias)
+        from django.core.cache import get_cache
+        from django.core.cache.backends.db import BaseDatabaseCache
+        for cache_alias in settings.CACHES:
+            cache = get_cache(cache_alias)
+            if isinstance(cache, BaseDatabaseCache):
+                from django.db import router
+                if router.allow_syncdb(self.connection.alias, cache.cache_model_class):
+                    call_command('createcachetable', cache._table, database=self.connection.alias)
 
         # Get a cursor (even though we don't need one yet). This has
         # the side effect of initializing the test database.
@@ -374,7 +378,7 @@ class BaseDatabaseCreation(object):
 
     def _get_test_db_name(self):
         """
-        Internal implementation - returns the name of the test DB that wll be
+        Internal implementation - returns the name of the test DB that will be
         created. Only useful when called from create_test_db() and
         _create_test_db() and when no external munging is done with the 'NAME'
         or 'TEST_NAME' settings.

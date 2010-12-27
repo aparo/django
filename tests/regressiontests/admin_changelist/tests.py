@@ -1,9 +1,12 @@
 from django.contrib import admin
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.admin.views.main import ChangeList
+from django.core.paginator import Paginator
 from django.template import Context, Template
 from django.test import TransactionTestCase
+
 from regressiontests.admin_changelist.models import Child, Parent
+
 
 class ChangeListTests(TransactionTestCase):
     def test_select_related_preserved(self):
@@ -93,11 +96,37 @@ class ChangeListTests(TransactionTestCase):
                     m.list_filter, m.date_hierarchy, m.search_fields,
                     m.list_select_related, m.list_per_page, m.list_editable, m))
 
+    def test_custom_paginator(self):
+        new_parent = Parent.objects.create(name='parent')
+        for i in range(200):
+            new_child = Child.objects.create(name='name %s' % i, parent=new_parent)
+
+        request = MockRequest()
+        m = ChildAdmin(Child, admin.site)
+        m.list_display = ['id', 'name', 'parent']
+        m.list_display_links = ['id']
+        m.list_editable = ['name']
+        m.paginator = CustomPaginator
+
+        cl = ChangeList(request, Child, m.list_display, m.list_display_links,
+                m.list_filter, m.date_hierarchy, m.search_fields,
+                m.list_select_related, m.list_per_page, m.list_editable, m)
+
+        cl.get_results(request)
+        self.assertIsInstance(cl.paginator, CustomPaginator)
+
 
 class ChildAdmin(admin.ModelAdmin):
     list_display = ['name', 'parent']
     def queryset(self, request):
         return super(ChildAdmin, self).queryset(request).select_related("parent__name")
 
+
 class MockRequest(object):
     GET = {}
+
+
+class CustomPaginator(Paginator):
+    def __init__(self, queryset, page_size, orphans=0, allow_empty_first_page=True):
+        super(CustomPaginator, self).__init__(queryset, 5, orphans=2,
+            allow_empty_first_page=allow_empty_first_page)
