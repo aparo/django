@@ -12,8 +12,10 @@ This document contains all the gory details about all the `field options`_ and
 
 .. seealso::
 
-    If the built-in fields don't do the trick, you can easily :doc:`write your
-    own custom model fields </howto/custom-model-fields>`.
+    If the built-in fields don't do the trick, you can try 
+    :mod:`django.contrib.localflavor`, which contains assorted pieces of code
+    that are useful for particular countries or cultures. Also, you can easily
+    :doc:`write your own custom model fields </howto/custom-model-fields>`.
 
 .. note::
 
@@ -437,11 +439,12 @@ A fixed-precision decimal number, represented in Python by a
 
 .. attribute:: DecimalField.max_digits
 
-    The maximum number of digits allowed in the number
+    The maximum number of digits allowed in the number. Note that this number
+    must be greater than ``decimal_places``, if it exists.
 
 .. attribute:: DecimalField.decimal_places
 
-    The number of decimal places to store with the number
+    The number of decimal places to store with the number.
 
 For example, to store numbers up to 999 with a resolution of 2 decimal places,
 you'd use::
@@ -454,6 +457,12 @@ decimal places::
     models.DecimalField(..., max_digits=19, decimal_places=10)
 
 The admin represents this as an ``<input type="text">`` (a single-line input).
+
+.. note::
+
+    For more information about the differences between the
+    :class:`FloatField` and :class:`DecimalField` classes, please
+    see :ref:`FloatField vs. DecimalField <floatfield_vs_decimalfield>`. 
 
 ``EmailField``
 --------------
@@ -546,10 +555,17 @@ four-digit year, ``'%m'`` is the two-digit month and ``'%d'`` is the two-digit
 day. If you upload a file on Jan. 15, 2007, it will be saved in the directory
 ``/home/media/photos/2007/01/15``.
 
-If you want to retrieve the upload file's on-disk filename, or a URL that refers
-to that file, or the file's size, you can use the
-:attr:`~django.core.files.File.name`, :attr:`~django.core.files.File.url`
-and :attr:`~django.core.files.File.size` attributes; see :doc:`/topics/files`.
+If you wanted to retrieve the uploaded file's on-disk filename, or the file's
+size, you could use the :attr:`~django.core.files.File.name` and
+:attr:`~django.core.files.File.size` attributes respectively; for more 
+information on the available attributes and methods, see the
+:class:`~django.core.files.File` class reference and the :doc:`/topics/files`
+topic guide.
+
+The uploaded file's relative URL can be obtained using the
+:attr:`~django.db.models.fields.FileField.url` attribute. Internally,
+this calls the :meth:`~django.core.files.storage.Storage.url` method of the
+underlying :class:`~django.core.files.storage.Storage` class.
 
 Note that whenever you deal with uploaded files, you should pay close attention
 to where you're uploading them and what type of files they are, to avoid
@@ -653,6 +669,20 @@ can change the maximum length using the :attr:`~CharField.max_length` argument.
 A floating-point number represented in Python by a ``float`` instance.
 
 The admin represents this as an ``<input type="text">`` (a single-line input).
+
+.. _floatfield_vs_decimalfield:
+
+.. admonition:: ``FloatField`` vs. ``DecimalField``
+
+    The :class:`FloatField` class is sometimes mixed up with the
+    :class:`DecimalField` class. Although they both represent real numbers, they
+    represent those numbers differently. ``FloatField`` uses Python's ``float``
+    type internally, while ``DecimalField`` uses Python's ``Decimal`` type. For
+    information on the difference between the two, see Python's documentation on
+    `Decimal fixed point and floating point arithmetic`_.
+
+.. _Decimal fixed point and floating point arithmetic: http://docs.python.org/library/decimal.html
+
 
 ``ImageField``
 --------------
