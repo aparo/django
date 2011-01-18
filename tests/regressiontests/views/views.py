@@ -36,6 +36,11 @@ def custom_create(request):
         form_class=SlugChangingArticleForm)
 
 def raises(request):
+    # Make sure that a callable that raises an exception in the stack frame's
+    # local vars won't hijack the technical 500 response. See:
+    # http://code.djangoproject.com/ticket/15025
+    def callable():
+        raise Exception
     try:
         raise Exception
     except Exception:
@@ -101,3 +106,17 @@ def render_view_with_status(request):
         'foo': 'FOO',
         'bar': 'BAR',
     }, status=403)
+
+def render_view_with_current_app(request):
+    return render(request, 'debug/render_test.html', {
+        'foo': 'FOO',
+        'bar': 'BAR',
+    }, current_app="foobar_app")
+
+def render_view_with_current_app_conflict(request):
+    # This should fail because we don't passing both a current_app and
+    # context_instance:
+    return render(request, 'debug/render_test.html', {
+        'foo': 'FOO',
+        'bar': 'BAR',
+    }, current_app="foobar_app", context_instance=RequestContext(request))

@@ -151,7 +151,7 @@ of the template and context that was provided by the view to compute
 the response. The final output of the response is not computed until
 it is needed, later in the response process.
 
-For more details, see the :ref:`documentation </ref/template-response>`
+For more details, see the :doc:`documentation </ref/template-response>`
 on the :class:`~django.template.TemplateResponse` class.
 
 Caching changes
@@ -172,8 +172,8 @@ prefixing <cache_key_prefixing>` and :ref:`transformation
 Lastly, support for pylibmc_ has been added to the memcached cache
 backend.
 
-For more details, see the :ref:`documentation on
-caching in Django<topics/cache>`.
+For more details, see the :doc:`documentation on
+caching in Django</topics/cache>`.
 
 .. _pylibmc: http://sendapatch.se/projects/pylibmc/
 
@@ -183,7 +183,7 @@ Permissions for inactive users
 If you provide a custom auth backend with ``supports_inactive_user`` set to
 ``True``, an inactive user model will check the backend for permissions.
 This is useful for further centralizing the permission handling. See the
-:ref:`authentication docs <topics-auth>` for more details.
+:doc:`authentication docs </topics/auth>` for more details.
 
 GeoDjango
 ~~~~~~~~~
@@ -191,6 +191,22 @@ GeoDjango
 The GeoDjango test suite is now included when
 :ref:`running the Django test suite <running-unit-tests>` with ``runtests.py``
 when using :ref:`spatial database backends <spatial-backends>`.
+
+``MEDIA_URL`` and ``STATIC_URL`` must end in a slash
+----------------------------------------------------
+
+Previously, the ``MEDIA_URL`` setting only required a trailing slash if it
+contained a suffix beyond the domain name.
+
+A trailing slash is now *required* for ``MEDIA_URL`` and the new
+``STATIC_URL`` setting as long as it is not blank. This ensures there is
+a consistent way to combine paths in templates.
+
+Project settings which provide either of both settings without a trailing
+slash will now raise a ``PendingDeprecation`` warning.
+
+In Django 1.4 this same condition will raise an ``ImproperlyConfigured``
+exception.
 
 Everything else
 ~~~~~~~~~~~~~~~
@@ -376,7 +392,23 @@ if you need to instantiate an empty ``FormSet``, don't pass in the data or use
     >>> formset = ArticleFormSet()
     >>> formset = ArticleFormSet(data=None)
 
+Callables in templates
+~~~~~~~~~~~~~~~~~~~~~~
 
+Previously, a callable in a template would only be called automatically as part
+of the variable resolution process if it was retrieved via attribute
+lookup. This was an inconsistency that could result in confusing and unhelpful
+behaviour::
+
+    >>> Template("{{ user.get_full_name }}").render(Context({'user': user}))
+    u'Joe Bloggs'
+    >>> Template("{{ full_name }}").render(Context({'full_name': user.get_full_name}))
+    u'&lt;bound method User.get_full_name of &lt;...
+
+This has been resolved in Django 1.3 - the result in both cases will be ``u'Joe
+Bloggs'``. Although the previous behaviour was not useful for a template language
+designed for web designers, and was never deliberately supported, it is possible
+that some templates may be broken by this change.
 
 .. _deprecated-features-1.3:
 

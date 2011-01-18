@@ -1,6 +1,6 @@
 import os
 from django.utils import unittest
-from django.test import RequestFactory
+from django.test import RequestFactory, TestCase
 from django.conf import settings
 import django.template.context
 from django.template import Template, Context, RequestContext
@@ -10,6 +10,13 @@ from django.template.response import (TemplateResponse, SimpleTemplateResponse,
 def test_processor(request):
     return {'processors': 'yes'}
 test_processor_name = 'regressiontests.templates.response.test_processor'
+
+
+# A test middleware that installs a temporary URLConf
+class CustomURLConfMiddleware(object):
+    def process_request(self, request):
+        request.urlconf = 'regressiontests.templates.alternate_urls'
+
 
 class BaseTemplateResponseTest(unittest.TestCase):
     # tests rely on fact that global context
@@ -172,3 +179,30 @@ class TemplateResponseTest(BaseTemplateResponseTest):
                                     'application/json', 504)
         self.assertEqual(response['content-type'], 'application/json')
         self.assertEqual(response.status_code, 504)
+
+    def test_custom_app(self):
+        response = self._response('{{ foo }}', current_app="foobar")
+
+        rc = response.resolve_context(response.context_data)
+
+        self.assertEqual(rc.current_app, 'foobar')
+
+
+class CustomURLConfTest(TestCase):
+    urls = 'regressiontests.templates.urls'
+
+    def setUp(self):
+        self.old_MIDDLEWARE_CLASSES = settings.MIDDLEWARE_CLASSES
+        settings.MIDDLEWARE_CLASSES = list(settings.MIDDLEWARE_CLASSES) + [
+            'regressiontests.templates.response.CustomURLConfMiddleware'
+        ]
+
+    def tearDown(self):
+        settings.MIDDLEWARE_CLASSES = self.old_MIDDLEWARE_CLASSES
+
+    def test_custom_urlconf(self):
+        response = self.client.get('/template_response_view/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'This is where you can find the snark: /snark/')
+
+

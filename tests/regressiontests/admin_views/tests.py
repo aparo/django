@@ -16,6 +16,7 @@ from django.contrib.admin.models import LogEntry, DELETION
 from django.contrib.admin.sites import LOGIN_FORM_KEY
 from django.contrib.admin.util import quote
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.contrib.admin.views.main import IS_POPUP_VAR
 from django.forms.util import ErrorList
 import django.template.context
 from django.test import TestCase
@@ -32,7 +33,7 @@ from models import Article, BarAccount, CustomArticle, EmptyModel, \
     FooAccount, Gallery, ModelWithStringPrimaryKey, \
     Person, Persona, Picture, Podcast, Section, Subscriber, Vodcast, \
     Language, Collector, Widget, Grommet, DooHickey, FancyDoodad, Whatsit, \
-    Category, Post, Plot, FunkyTag, Chapter, Book, Promo
+    Category, Post, Plot, FunkyTag, Chapter, Book, Promo, WorkHour, Employee
 
 
 class AdminViewBasicTest(TestCase):
@@ -105,6 +106,22 @@ class AdminViewBasicTest(TestCase):
         }
         response = self.client.post('/test_admin/%s/admin_views/section/add/' % self.urlbit, post_data)
         self.assertEqual(response.status_code, 302) # redirect somewhere
+
+    def testPopupAddPost(self):
+        """
+        Ensure http response from a popup is properly escaped.
+        """
+        post_data = {
+            '_popup': u'1',
+            'title': u'title with a new\nline',
+            'content': u'some content',
+            'date_0': u'2010-09-10',
+            'date_1': u'14:55:39',
+        }
+        response = self.client.post('/test_admin/%s/admin_views/article/add/' % self.urlbit, post_data)
+        self.failUnlessEqual(response.status_code, 200)
+        self.assertContains(response, 'dismissAddAnotherPopup')
+        self.assertContains(response, 'title with a new\u000Aline')
 
     # Post data for edit inline
     inline_post_data = {
@@ -355,9 +372,25 @@ class AdminViewBasicTest(TestCase):
         )
 
         try:
-            self.client.get("/test_admin/admin/admin_views/stuff/?color__value__startswith=red")
+            self.client.get("/test_admin/admin/admin_views/thing/?color__value__startswith=red")
+            self.client.get("/test_admin/admin/admin_views/thing/?color__value=red")
         except SuspiciousOperation:
             self.fail("Filters are allowed if explicitly included in list_filter")
+
+        try:
+            self.client.get("/test_admin/admin/admin_views/person/?age__gt=30")
+        except SuspiciousOperation:
+            self.fail("Filters should be allowed if they involve a local field without the need to whitelist them in list_filter or date_hierarchy.")
+
+        e1 = Employee.objects.create(name='Anonymous', gender=1, age=22, alive=True, code='123')
+        e2 = Employee.objects.create(name='Visitor', gender=2, age=19, alive=True, code='124')
+        WorkHour.objects.create(datum=datetime.datetime.now(), employee=e1)
+        WorkHour.objects.create(datum=datetime.datetime.now(), employee=e2)
+        response = self.client.get("/test_admin/admin/admin_views/workhour/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'employee__person_ptr__exact')
+        response = self.client.get("/test_admin/admin/admin_views/workhour/?employee__person_ptr__exact=%d" % e1.pk)
+        self.assertEqual(response.status_code, 200)
 
 class SaveAsTests(TestCase):
     fixtures = ['admin-views-users.xml','admin-views-person.xml']
@@ -370,7 +403,7 @@ class SaveAsTests(TestCase):
 
     def test_save_as_duplication(self):
         """Ensure save as actually creates a new person"""
-        post_data = {'_saveasnew':'', 'name':'John M', 'gender':1}
+        post_data = {'_saveasnew':'', 'name':'John M', 'gender':1, 'age': 42}
         response = self.client.post('/test_admin/admin/admin_views/person/1/', post_data)
         self.assertEqual(len(Person.objects.filter(name='John M')), 1)
         self.assertEqual(len(Person.objects.filter(id=1)), 1)
@@ -1450,7 +1483,14 @@ class AdminViewListEditable(TestCase):
         self.assertEqual(Person.objects.get(name="John Mauchly").alive, False)
         self.assertEqual(Person.objects.get(name="Grace Hopper").gender, 2)
 
-
+    def test_list_editable_popup(self):
+        """
+        Fields should not be list-editable in popups.
+        """
+        response = self.client.get('/test_admin/admin/admin_views/person/')
+        self.assertNotEqual(response.context['cl'].list_editable, ())
+        response = self.client.get('/test_admin/admin/admin_views/person/?%s' % IS_POPUP_VAR)
+        self.assertEqual(response.context['cl'].list_editable, ())
 
 
 class AdminSearchTest(TestCase):
@@ -1700,6 +1740,14 @@ class AdminActionsTest(TestCase):
         """
         response = self.client.get('/test_admin/admin/admin_views/subscriber/')
         self.assertContains(response, '0 of 2 selected')
+
+    def test_popup_actions(self):
+        """ Actions should not be shown in popups. """
+        response = self.client.get('/test_admin/admin/admin_views/subscriber/')
+        self.assertNotEquals(response.context["action_form"], None)
+        response = self.client.get(
+            '/test_admin/admin/admin_views/subscriber/?%s' % IS_POPUP_VAR)
+        self.assertEquals(response.context["action_form"], None)
 
 
 class TestCustomChangeList(TestCase):

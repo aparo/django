@@ -4,10 +4,12 @@ import decimal
 import os
 import sys
 import pickle
+from threading import local
 
 from django.conf import settings
 from django.template import Template, Context
-from django.utils.formats import get_format, date_format, time_format, localize, localize_input, iter_format_modules
+from django.utils.formats import (get_format, date_format, time_format,
+    localize, localize_input, iter_format_modules)
 from django.utils.importlib import import_module
 from django.utils.numberformat import format as nformat
 from django.utils.safestring import mark_safe, SafeString, SafeUnicode
@@ -61,7 +63,7 @@ class TranslationTests(TestCase):
         self.old_locale_paths = settings.LOCALE_PATHS
         settings.LOCALE_PATHS += (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'other', 'locale'),)
         from django.utils.translation import trans_real
-        trans_real._active = {}
+        trans_real._active = local()
         trans_real._translations = {}
         activate('de')
 
@@ -480,6 +482,19 @@ class FormattingTests(TestCase):
             settings.FORMAT_MODULE_PATH = old_format_module_path
             deactivate()
 
+    def test_iter_format_modules_stability(self):
+        """
+        Tests the iter_format_modules function always yields format modules in
+        a stable and correct order in presence of both base ll and ll_CC formats.
+        """
+        try:
+            old_l10n, settings.USE_L10N = settings.USE_L10N, True
+            en_format_mod = import_module('django.conf.locale.en.formats')
+            en_gb_format_mod = import_module('django.conf.locale.en_GB.formats')
+            self.assertEqual(list(iter_format_modules('en-gb')), [en_gb_format_mod, en_format_mod])
+        finally:
+            settings.USE_L10N = old_l10n
+
     def test_localize_templatetag_and_filter(self):
         """
         Tests the {% localize %} templatetag
@@ -636,7 +651,7 @@ class ResolutionOrderI18NTests(TestCase):
         from django.utils.translation import trans_real
         # Okay, this is brutal, but we have no other choice to fully reset
         # the translation framework
-        trans_real._active = {}
+        trans_real._active = local()
         trans_real._translations = {}
         activate('de')
 
