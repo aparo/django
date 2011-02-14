@@ -411,34 +411,45 @@ translated, here's what to do:
 
     * Make sure you read the notes about :ref:`specialties-of-django-i18n`.
 
-    * Create translations using the methods described in the
-      :doc:`localization documentation </topics/i18n/localization>`. For this
-      you will use the ``django-admin.py makemessages`` tool. In this
-      particular case it should be run from the top-level ``django`` directory
-      of the Django source tree.
+    * Signup at `Transifex`_ and visit the `Django project page`_.
 
-      The script runs over the entire Django source tree and pulls out all
-      strings marked for translation. It creates (or updates) a message file in
-      the directory ``conf/locale`` (for example for ``pt_BR``, the file will be
-      ``conf/locale/pt_BR/LC_MESSAGES/django.po``).
+    * On the "`Translation Teams`_" page, choose the language team you want
+      to work with, **or** -- in case the language team doesn't exist yet --
+      request a new team by clicking on the "Request a new team" button
+      and select the appropriate language.
 
-    * Make sure that ``django-admin.py compilemessages -l <lang>`` runs without
-      producing any warnings.
+    * Then, click the "Join this Team" button to become a member of this team.
+      Every team has at least one coordinator who is responsible to review
+      your membership request. You can of course also contact the team
+      coordinator to clarify procedual problems and handle the actual
+      translation process.
 
-    * Repeat the last two steps for the ``djangojs`` domain (by appending the
-      ``-d djangojs`` command line option to the ``django-admin.py``
-      invocations).
+    * Once you are a member of a team choose the translation resource you
+      want update on the team page. For example the "core" resource refers
+      to the translation catalogue that contains all non-app translations.
+      Each of the contrib apps also have a resource -- prefixed with "contrib-".
+
+      .. note::
+         For more information about how to use Transifex, see the
+         `Transifex Help`_
 
     * Optionally, review and update the ``conf/locale/<locale>/formats.py``
-      file to describe the date, time and numbers formatting particularities of
-      your locale. See :ref:`format-localization` for details.
+      file to describe the date, time and numbers formatting particularities
+      of your locale. These files aren't covered by the use of Transifex and
+      require a patch against the Django source tree, just as a code change
+      would:
 
-    * Create a diff against the current Subversion trunk.
+      * Create a diff against the current Subversion trunk.
 
-    * Open a ticket in Django's ticket system, set its ``Component`` field to
-      ``Translations``, and attach the patch to it.
+      * Open a ticket in Django's ticket system, set its ``Component`` field
+        to ``Translations``, and attach the patch to it. See
+        :ref:`format-localization` for details.
 
 .. _Django i18n mailing list: http://groups.google.com/group/django-i18n/
+.. _Transifex: http://www.transifex.net/
+.. _Django project page: http://www.transifex.net/projects/p/django/
+.. _translation teams: http://www.transifex.net/projects/p/django/teams/
+.. _Transifex Help: http://help.transifex.net/
 
 Submitting javascript patches
 =============================
@@ -878,14 +889,41 @@ for an explanation of how to write new tests.
 Running the unit tests
 ----------------------
 
-To run the tests, ``cd`` to the ``tests/`` directory and type:
+Quickstart
+~~~~~~~~~~
+
+Running the tests requires a Django settings module that defines the
+databases to use. To make it easy to get started. Django provides a
+sample settings module that uses the SQLite database. To run the tests
+with this sample ``settings`` module, ``cd`` into the Django
+``tests/`` directory and run:
+
+.. code-block:: bash
+
+    ./runtests.py --settings=test_sqlite
+
+If you get an ``ImportError: No module named django.contrib`` error,
+you need to add your install of Django to your ``PYTHONPATH``. For
+more details on how to do this, read `Pointing Python at the new
+Django version`_ below.
+
+Using another ``settings`` module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The included settings module allows you to run the test suite using
+SQLite. If you want to test behavior using a different database (and
+if you're proposing patches for Django, it's a good idea to test
+across databases), you may need to define your own settings file.
+
+To run the tests with different settings, ``cd`` to the ``tests/`` directory
+and type:
 
 .. code-block:: bash
 
     ./runtests.py --settings=path.to.django.settings
 
-Yes, the unit tests need a settings module, but only for database connection
-info. Your :setting:`DATABASES` setting needs to define two databases:
+The :setting:`DATABASES` setting in this test settings module needs to define
+two databases:
 
     * A ``default`` database. This database should use the backend that
       you want to use for primary testing
@@ -896,22 +934,8 @@ info. Your :setting:`DATABASES` setting needs to define two databases:
       want. It doesn't need to use the same backend as the ``default``
       database (although it can use the same backend if you want to).
 
-As a convenience, a minimal settings file, using two in memory SQLite
-databases, is included in your Django distribution. It is called
-``test_sqlite``, and is included in the ``tests`` directory. This allows you to
-get started running the tests against the sqlite database without doing
-anything on your filesystem. However it should be noted that running against
-other database backends is recommended for certain types of test cases.
-
-To run the tests with this included settings file, ``cd``
-to the ``tests/`` directory and type:
-
-.. code-block:: bash
-
-    ./runtests.py --settings=test_sqlite
-
-If you're using another backend, you will need to provide other details for
-each database:
+If you're using a backend that isn't SQLite, you will need to provide other
+details for each database:
 
     * The :setting:`USER` option for each of your databases needs to
       specify an existing user account for the database.
@@ -931,6 +955,40 @@ character set. If your database server doesn't use UTF-8 as a default charset,
 you will need to include a value for ``TEST_CHARSET`` in the settings
 dictionary for the applicable database.
 
+Running only some of the tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Django's entire test suite takes a few minutes to run. To run a subset of the
+unit tests, append the names of the test modules to the ``runtests.py``
+command line.
+
+As an example, if you'd like to only run tests for generic relations and
+internationalization, type:
+
+.. code-block:: bash
+
+    ./runtests.py --settings=path.to.settings generic_relations i18n
+
+See the list of directories in ``tests/modeltests`` and
+``tests/regressiontests`` for module names.
+
+If you just want to run a particular class of tests, you can specify a list of
+paths to individual test classes. For example, to run the ``TranslationTests``
+of the ``i18n`` module, type:
+
+.. code-block:: bash
+
+    ./runtests.py --settings=path.to.settings i18n.TranslationTests
+
+You can specify an individual test like this:
+
+.. code-block:: bash
+
+    ./runtests.py --settings=path.to.settings i18n.TranslationTests.test_lazy_objects
+
+Running all the tests
+~~~~~~~~~~~~~~~~~~~~~
+
 If you want to run the full suite of tests, you'll need to install a number of
 dependencies:
 
@@ -939,8 +997,7 @@ dependencies:
     *  Textile_
     *  Docutils_
     *  setuptools_
-    *  memcached_, plus the either the python-memcached_ or cmemcached_
-       Python binding
+    *  memcached_, plus a :ref:`supported Python binding <memcached>`
     *  gettext_ (:ref:`gettext_on_windows`)
 
 If you want to test the memcached cache backend, you will also need to define
@@ -955,22 +1012,7 @@ associated tests will be skipped.
 .. _docutils: http://pypi.python.org/pypi/docutils/0.4
 .. _setuptools: http://pypi.python.org/pypi/setuptools/
 .. _memcached: http://www.danga.com/memcached/
-.. _python-memcached: http://pypi.python.org/pypi/python-memcached/
-.. _cmemcached: http://gijsbert.org/cmemcache/index.html
 .. _gettext: http://www.gnu.org/software/gettext/manual/gettext.html
-
-To run a subset of the unit tests, append the names of the test modules to the
-``runtests.py`` command line. See the list of directories in
-``tests/modeltests`` and ``tests/regressiontests`` for module names.
-
-As an example, if Django is not in your ``PYTHONPATH``, you placed
-``settings.py`` in the ``tests/`` directory, and you'd like to only run tests
-for generic relations and internationalization, type:
-
-.. code-block:: bash
-
-    PYTHONPATH=`pwd`/..
-    ./runtests.py --settings=settings generic_relations i18n
 
 Contrib apps
 ------------

@@ -178,6 +178,36 @@ class Thing(models.Model):
 class ThingAdmin(admin.ModelAdmin):
     list_filter = ('color__warm', 'color__value')
 
+class Actor(models.Model):
+    name = models.CharField(max_length=50)
+    age = models.IntegerField()
+    def __unicode__(self):
+        return self.name
+
+class Inquisition(models.Model):
+    expected = models.BooleanField()
+    leader = models.ForeignKey(Actor)
+    country = models.CharField(max_length=20)
+
+    def __unicode__(self):
+        return u"by %s from %s" % (self.leader, self.country)
+
+class InquisitionAdmin(admin.ModelAdmin):
+    list_display = ('leader', 'country', 'expected')
+
+class Sketch(models.Model):
+    title = models.CharField(max_length=100)
+    inquisition = models.ForeignKey(Inquisition, limit_choices_to={'leader__name': 'Palin',
+                                                                   'leader__age': 27,
+                                                                   'expected': False,
+                                                                   })
+
+    def __unicode__(self):
+        return self.title
+
+class SketchAdmin(admin.ModelAdmin):
+    raw_id_fields = ('inquisition',)
+
 class Fabric(models.Model):
     NG_CHOICES = (
         ('Textured', (
@@ -626,12 +656,29 @@ class WorkHourAdmin(admin.ModelAdmin):
     list_display = ('datum', 'employee')
     list_filter = ('employee',)
 
+class Question(models.Model):
+    question = models.CharField(max_length=20)
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.PROTECT)
+    answer = models.CharField(max_length=20)
+
+    def __unicode__(self):
+        return self.answer
+
+class Reservation(models.Model):
+    start_date = models.DateTimeField()
+    price = models.IntegerField()
+    
 admin.site.register(Article, ArticleAdmin)
 admin.site.register(CustomArticle, CustomArticleAdmin)
 admin.site.register(Section, save_as=True, inlines=[ArticleInline])
 admin.site.register(ModelWithStringPrimaryKey)
 admin.site.register(Color)
 admin.site.register(Thing, ThingAdmin)
+admin.site.register(Actor)
+admin.site.register(Inquisition, InquisitionAdmin)
+admin.site.register(Sketch, SketchAdmin)
 admin.site.register(Person, PersonAdmin)
 admin.site.register(Persona, PersonaAdmin)
 admin.site.register(Subscriber, SubscriberAdmin)
@@ -658,6 +705,7 @@ admin.site.register(PlotDetails)
 admin.site.register(CyclicOne)
 admin.site.register(CyclicTwo)
 admin.site.register(WorkHour, WorkHourAdmin)
+admin.site.register(Reservation)
 
 # We intentionally register Promo and ChapterXtra1 but not Chapter nor ChapterXtra2.
 # That way we cover all four cases:
@@ -674,3 +722,5 @@ admin.site.register(ChapterXtra1, ChapterXtra1Admin)
 admin.site.register(Pizza, PizzaAdmin)
 admin.site.register(Topping)
 admin.site.register(Album, AlbumAdmin)
+admin.site.register(Question)
+admin.site.register(Answer)

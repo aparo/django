@@ -561,6 +561,7 @@ class FieldsTests(TestCase):
         self.assertEqual(u'http://www.google.com/', f.clean('http://www.google.com')) # This will fail if there's no Internet connection
         self.assertRaisesErrorWithMessage(ValidationError, "[u'Enter a valid URL.']", f.clean, 'http://example')
         self.assertRaises(ValidationError, f.clean, 'http://www.broken.djangoproject.com') # bad domain
+        self.assertRaises(ValidationError, f.clean, 'http://qa-dev.w3.org/link-testsuite/http.php?code=405') # Method not allowed
         try:
             f.clean('http://www.broken.djangoproject.com') # bad domain
         except ValidationError, e:
@@ -570,13 +571,8 @@ class FieldsTests(TestCase):
             f.clean('http://google.com/we-love-microsoft.html') # good domain, bad page
         except ValidationError, e:
             self.assertEqual("[u'This URL appears to be a broken link.']", str(e))
-        # Valid and existent IDN
-        self.assertEqual(u'http://\u05e2\u05d1\u05e8\u05d9\u05ea.idn.icann.org/', f.clean(u'http://עברית.idn.icann.org/'))
-        # Valid but non-existent IDN
-        try:
-            f.clean(u'http://broken.עברית.idn.icann.org/')
-        except ValidationError, e:
-            self.assertEqual("[u'This URL appears to be a broken link.']", str(e))
+        # UTF-8 char in path
+        self.assertEqual(u'http://de.wikipedia.org/wiki/T\xfcr', f.clean(u'http://de.wikipedia.org/wiki/T\xfcr'))
 
     def test_urlfield_4(self):
         f = URLField(verify_exists=True, required=False)
@@ -600,9 +596,35 @@ class FieldsTests(TestCase):
         self.assertEqual(u'http://example.com/', f.clean('http://example.com'))
         self.assertEqual(u'http://example.com/test', f.clean('http://example.com/test'))
 
-    def test_urlfield_ticket11826(self):
+    def test_urlfield_8(self):
+        # ticket #11826
         f = URLField()
         self.assertEqual(u'http://example.com/?some_param=some_value', f.clean('http://example.com?some_param=some_value'))
+
+    def test_urlfield_9(self):
+        f = URLField(verify_exists=False)
+        urls = (
+            u'http://עברית.idn.icann.org/',
+            u'http://sãopaulo.com/',
+            u'http://sãopaulo.com.br/',
+            u'http://пример.испытание/',
+            u'http://مثال.إختبار/',
+            u'http://例子.测试/',
+            u'http://例子.測試/',
+            u'http://उदाहरण.परीक्षा/',
+            u'http://例え.テスト/',
+            u'http://مثال.آزمایشی/',
+            u'http://실례.테스트/',
+            u'http://العربية.idn.icann.org/',
+        )
+        for url in urls:
+            # Valid and existent IDN
+            self.assertEqual(url, f.clean(url))
+        # Valid but non-existent IDN
+        try:
+            f.clean(u'http://broken.עברית.idn.icann.org/')
+        except ValidationError, e:
+            self.assertEqual("[u'This URL appears to be a broken link.']", str(e))
 
     # BooleanField ################################################################
 
