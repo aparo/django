@@ -155,7 +155,7 @@ class AdminScriptTestCase(unittest.TestCase):
 
     def assertNoOutput(self, stream):
         "Utility assertion: assert that the given stream is empty"
-        self.assertEquals(len(stream), 0, "Stream should be empty: actually contains '%s'" % stream)
+        self.assertEqual(len(stream), 0, "Stream should be empty: actually contains '%s'" % stream)
     def assertOutput(self, stream, msg):
         "Utility assertion: assert that the given message exists in the output"
         self.assertTrue(msg in stream, "'%s' does not match actual output text '%s'" % (msg, stream))
@@ -545,7 +545,7 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
         args = ['startapp','settings_test']
         out, err = self.run_django_admin(args,'settings')
         self.assertNoOutput(err)
-        self.assert_(os.path.exists(os.path.join(test_dir, 'settings_test')))
+        self.assertTrue(os.path.exists(os.path.join(test_dir, 'settings_test')))
         shutil.rmtree(os.path.join(test_dir, 'settings_test'))
 
     def test_builtin_command(self):
@@ -1108,6 +1108,16 @@ class CommandTypes(AdminScriptTestCase):
     def test_help(self):
         "--help is handled as a special case"
         args = ['--help']
+        out, err = self.run_manage(args)
+        if sys.version_info < (2, 5):
+            self.assertOutput(out, "usage: manage.py subcommand [options] [args]")
+        else:
+            self.assertOutput(out, "Usage: manage.py subcommand [options] [args]")
+        self.assertOutput(err, "Type 'manage.py help <subcommand>' for help on a specific subcommand.")
+
+    def test_short_help(self):
+        "-h is handled as a short form of --help"
+        args = ['-h']
         out, err = self.run_manage(args)
         if sys.version_info < (2, 5):
             self.assertOutput(out, "usage: manage.py subcommand [options] [args]")

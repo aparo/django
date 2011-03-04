@@ -1,5 +1,7 @@
+from copy import copy
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.importlib import import_module
+from django.http import HttpRequest
 
 # Cache of actual callables.
 _standard_context_processors = None
@@ -12,10 +14,22 @@ class ContextPopException(Exception):
     "pop() has been called more times than push()"
     pass
 
+class EmptyClass(object):
+    # No-op class which takes no args to its __init__ method, to help implement
+    # __copy__
+    pass
+
 class BaseContext(object):
     def __init__(self, dict_=None):
         dict_ = dict_ or {}
         self.dicts = [dict_]
+
+    def __copy__(self):
+        duplicate = EmptyClass()
+        duplicate.__class__ = self.__class__
+        duplicate.__dict__ = self.__dict__.copy()
+        duplicate.dicts = duplicate.dicts[:]
+        return duplicate
 
     def __repr__(self):
         return repr(self.dicts)
@@ -72,6 +86,11 @@ class Context(BaseContext):
         self.current_app = current_app
         self.render_context = RenderContext()
         super(Context, self).__init__(dict_)
+
+    def __copy__(self):
+        duplicate = super(Context, self).__copy__()
+        duplicate.render_context = copy(self.render_context)
+        return duplicate
 
     def update(self, other_dict):
         "Pushes other_dict to the stack of dictionaries in the Context"
