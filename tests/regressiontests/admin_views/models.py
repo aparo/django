@@ -252,7 +252,7 @@ class BasePersonModelFormSet(BaseModelFormSet):
             person = person_dict.get('id')
             alive = person_dict.get('alive')
             if person and alive and person.name == "Grace Hopper":
-                raise forms.ValidationError, "Grace is not a Zombie"
+                raise forms.ValidationError("Grace is not a Zombie")
 
 class PersonAdmin(admin.ModelAdmin):
     list_display = ('name', 'gender', 'alive')
@@ -710,7 +710,7 @@ class Paper(models.Model):
 
 class CoverLetter(models.Model):
     author = models.CharField(max_length=30)
-    date = models.DateField(null=True, blank=True)
+    date_written = models.DateField(null=True, blank=True)
 
     def __unicode__(self):
         return self.author
@@ -733,7 +733,7 @@ class CoverLetterAdmin(admin.ModelAdmin):
 
     def queryset(self, request):
         #return super(CoverLetterAdmin, self).queryset(request).only('author')
-        return super(CoverLetterAdmin, self).queryset(request).defer('date')
+        return super(CoverLetterAdmin, self).queryset(request).defer('date_written')
 
 class Story(models.Model):
     title = models.CharField(max_length=100)
