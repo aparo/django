@@ -326,9 +326,6 @@ class QueryDict(MultiValueDict):
     def __init__(self, query_string, mutable=False, encoding=None):
         MultiValueDict.__init__(self)
         if not encoding:
-            # *Important*: do not import settings any earlier because of note
-            # in core.handlers.modpython.
-            from django.conf import settings
             encoding = settings.DEFAULT_CHARSET
         self.encoding = encoding
         for key, value in parse_qsl((query_string or ''), True): # keep_blank_values=True
@@ -338,9 +335,6 @@ class QueryDict(MultiValueDict):
 
     def _get_encoding(self):
         if self._encoding is None:
-            # *Important*: do not import settings at the module level because
-            # of the note in core.handlers.modpython.
-            from django.conf import settings
             self._encoding = settings.DEFAULT_CHARSET
         return self._encoding
 
@@ -370,7 +364,7 @@ class QueryDict(MultiValueDict):
         return result
 
     def __deepcopy__(self, memo):
-        import django.utils.copycompat as copy
+        import copy
         result = self.__class__('', mutable=True, encoding=self.encoding)
         memo[id(self)] = result
         for key, value in dict.items(self):
