@@ -30,6 +30,15 @@ from django.http import HttpRequest
 
 cc_delim_re = re.compile(r'\s*,\s*')
 
+def get_key_prefix():
+    """
+    Returns a valid key prefix to manage multitenancy
+    """
+    if settings.MULTITENANCY:
+        from django.multitenancy.settings import get_tenancy_key
+        return get_tenancy_key()
+    return settings.CACHE_MIDDLEWARE_KEY_PREFIX
+
 def patch_cache_control(response, **kwargs):
     """
     This function patches the Cache-Control header by adding all

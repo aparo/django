@@ -50,8 +50,7 @@ More details about how the caching works:
 
 from django.conf import settings
 from django.core.cache import get_cache, DEFAULT_CACHE_ALIAS
-from django.utils.cache import get_cache_key, learn_cache_key, patch_response_headers, get_max_age
-
+from django.utils.cache import get_cache_key, learn_cache_key, patch_response_headers, get_max_age, has_vary_header, get_key_prefix
 
 class UpdateCacheMiddleware(object):
     """
@@ -64,7 +63,6 @@ class UpdateCacheMiddleware(object):
     """
     def __init__(self):
         self.cache_timeout = settings.CACHE_MIDDLEWARE_SECONDS
-        self.key_prefix = settings.CACHE_MIDDLEWARE_KEY_PREFIX
         self.cache_anonymous_only = getattr(settings, 'CACHE_MIDDLEWARE_ANONYMOUS_ONLY', False)
         self.cache_alias = settings.CACHE_MIDDLEWARE_ALIAS
         self.cache = get_cache(self.cache_alias)
@@ -106,7 +104,7 @@ class UpdateCacheMiddleware(object):
             return response
         patch_response_headers(response, timeout)
         if timeout:
-            cache_key = learn_cache_key(request, response, timeout, self.key_prefix, cache=self.cache)
+            cache_key = learn_cache_key(request, response, timeout, get_key_prefix(), cache=self.cache)
             if hasattr(response, 'render') and callable(response.render):
                 response.add_post_render_callback(
                     lambda r: self.cache.set(cache_key, r, timeout)
@@ -125,7 +123,6 @@ class FetchFromCacheMiddleware(object):
     """
     def __init__(self):
         self.cache_timeout = settings.CACHE_MIDDLEWARE_SECONDS
-        self.key_prefix = settings.CACHE_MIDDLEWARE_KEY_PREFIX
         self.cache_anonymous_only = getattr(settings, 'CACHE_MIDDLEWARE_ANONYMOUS_ONLY', False)
         self.cache_alias = settings.CACHE_MIDDLEWARE_ALIAS
         self.cache = get_cache(self.cache_alias)
@@ -140,14 +137,14 @@ class FetchFromCacheMiddleware(object):
             return None # Don't bother checking the cache.
 
         # try and get the cached GET response
-        cache_key = get_cache_key(request, self.key_prefix, 'GET', cache=self.cache)
+        cache_key = get_cache_key(request, get_key_prefix(), 'GET', cache=self.cache)
         if cache_key is None:
             request._cache_update_cache = True
             return None # No cache information available, need to rebuild.
         response = self.cache.get(cache_key, None)
         # if it wasn't found and we are looking for a HEAD, try looking just for that
         if response is None and request.method == 'HEAD':
-            cache_key = get_cache_key(request, self.key_prefix, 'HEAD', cache=self.cache)
+            cache_key = get_cache_key(request, get_key_prefix(), 'HEAD', cache=self.cache)
             response = self.cache.get(cache_key, None)
 
         if response is None:
@@ -164,6 +161,8 @@ class CacheMiddleware(UpdateCacheMiddleware, FetchFromCacheMiddleware):
 
     Also used as the hook point for the cache decorator, which is generated
     using the decorator-from-middleware utility.
+    
+    TODO: check multitenancy
     """
     def __init__(self, cache_timeout=None, cache_anonymous_only=None, **kwargs):
         # We need to differentiate between "provided, but using default value",
@@ -180,7 +179,7 @@ class CacheMiddleware(UpdateCacheMiddleware, FetchFromCacheMiddleware):
             else:
                 self.key_prefix = ''
         except KeyError:
-            self.key_prefix = settings.CACHE_MIDDLEWARE_KEY_PREFIX
+            self.key_prefix = get_key_prefix()
             cache_kwargs['KEY_PREFIX'] = self.key_prefix
 
         try:
