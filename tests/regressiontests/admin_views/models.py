@@ -243,9 +243,6 @@ class Person(models.Model):
     def __unicode__(self):
         return self.name
 
-    class Meta:
-        ordering = ["id"]
-
 class BasePersonModelFormSet(BaseModelFormSet):
     def clean(self):
         for person_dict in self.cleaned_data:
@@ -259,12 +256,16 @@ class PersonAdmin(admin.ModelAdmin):
     list_editable = ('gender', 'alive')
     list_filter = ('gender',)
     search_fields = ('^name',)
-    ordering = ["id"]
     save_as = True
 
     def get_changelist_formset(self, request, **kwargs):
         return super(PersonAdmin, self).get_changelist_formset(request,
             formset=BasePersonModelFormSet, **kwargs)
+
+    def queryset(self, request):
+        # Order by a field that isn't in list display, to be able to test
+        # whether ordering is preserved.
+        return super(PersonAdmin, self).queryset(request).order_by('age')
 
 
 class Persona(models.Model):
@@ -341,19 +342,24 @@ def external_mail(modeladmin, request, selected):
         'from@example.com',
         ['to@example.com']
     ).send()
+external_mail.short_description = 'External mail (Another awesome action)'
 
 def redirect_to(modeladmin, request, selected):
     from django.http import HttpResponseRedirect
     return HttpResponseRedirect('/some-where-else/')
+redirect_to.short_description = 'Redirect to (Awesome action)'
 
 class ExternalSubscriberAdmin(admin.ModelAdmin):
-    actions = [external_mail, redirect_to]
+    actions = [redirect_to, external_mail]
 
 class Media(models.Model):
     name = models.CharField(max_length=60)
 
 class Podcast(Media):
     release_date = models.DateField()
+
+    class Meta:
+        ordering = ('release_date',) # overridden in PodcastAdmin
 
 class PodcastAdmin(admin.ModelAdmin):
     list_display = ('name', 'release_date')
@@ -529,6 +535,51 @@ class LinkInline(admin.TabularInline):
     readonly_fields = ("posted",)
 
 
+class PrePopulatedPost(models.Model):
+    title = models.CharField(max_length=100)
+    published = models.BooleanField()
+    slug = models.SlugField()
+
+class PrePopulatedSubPost(models.Model):
+    post = models.ForeignKey(PrePopulatedPost)
+    subtitle = models.CharField(max_length=100)
+    subslug = models.SlugField()
+
+class SubPostInline(admin.TabularInline):
+    model = PrePopulatedSubPost
+
+    prepopulated_fields = {
+        'subslug' : ('subtitle',)
+    }
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.published:
+            return ('subslug',)
+        return self.readonly_fields
+
+    def get_prepopulated_fields(self, request, obj=None):
+        if obj and obj.published:
+            return {}
+        return self.prepopulated_fields
+
+class PrePopulatedPostAdmin(admin.ModelAdmin):
+    list_display = ['title', 'slug']
+    prepopulated_fields = {
+        'slug' : ('title',)
+    }
+
+    inlines = [SubPostInline]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.published:
+            return ('slug',)
+        return self.readonly_fields
+
+    def get_prepopulated_fields(self, request, obj=None):
+        if obj and obj.published:
+            return {}
+        return self.prepopulated_fields
+
 class Post(models.Model):
     title = models.CharField(max_length=100, help_text="Some help text for the title (with unicode ŠĐĆŽćžšđ)")
     content = models.TextField(help_text="Some help text for the content (with unicode ŠĐĆŽćžšđ)")
@@ -566,7 +617,7 @@ class Gadget(models.Model):
         return self.name
 
 class CustomChangeList(ChangeList):
-    def get_query_set(self):
+    def get_query_set(self, request):
         return self.root_query_set.filter(pk=9999) # Does not exist
 
 class GadgetAdmin(admin.ModelAdmin):
@@ -748,6 +799,7 @@ class StoryAdmin(admin.ModelAdmin):
     list_display_links = ('title',) # 'id' not in list_display_links
     list_editable = ('content', )
     form = StoryForm
+    ordering = ["-pk"]
 
 class OtherStory(models.Model):
     title = models.CharField(max_length=100)
@@ -757,6 +809,21 @@ class OtherStoryAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'content')
     list_display_links = ('title', 'id') # 'id' in list_display_links
     list_editable = ('content', )
+    ordering = ["-pk"]
+
+class ComplexSortedPerson(models.Model):
+    name = models.CharField(max_length=100)
+    age = models.PositiveIntegerField()
+    is_employee = models.NullBooleanField()
+
+class ComplexSortedPersonAdmin(admin.ModelAdmin):
+    list_display = ('name', 'age', 'is_employee', 'colored_name')
+    ordering = ('name',)
+
+    def colored_name(self, obj):
+        return '<span style="color: #%s;">%s</span>' % ('ff00ff', obj.name)
+    colored_name.allow_tags = True
+    colored_name.admin_order_field = 'name'
 
 admin.site.register(Article, ArticleAdmin)
 admin.site.register(CustomArticle, CustomArticleAdmin)
@@ -818,3 +885,5 @@ admin.site.register(Topping)
 admin.site.register(Album, AlbumAdmin)
 admin.site.register(Question)
 admin.site.register(Answer)
+admin.site.register(PrePopulatedPost, PrePopulatedPostAdmin)
+admin.site.register(ComplexSortedPerson, ComplexSortedPersonAdmin)

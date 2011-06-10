@@ -14,10 +14,11 @@ from django.core.files.storage import default_storage
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils.encoding import smart_unicode
+from django.utils.functional import empty
 from django.utils._os import rmtree_errorhandler
 
 
-TEST_ROOT = os.path.normcase(os.path.dirname(__file__))
+TEST_ROOT = os.path.dirname(__file__)
 
 
 class StaticFilesTestCase(TestCase):
@@ -33,7 +34,6 @@ class StaticFilesTestCase(TestCase):
         self.old_media_url = settings.MEDIA_URL
         self.old_admin_media_prefix = settings.ADMIN_MEDIA_PREFIX
         self.old_debug = settings.DEBUG
-        self.old_installed_apps = settings.INSTALLED_APPS
 
         site_media = os.path.join(TEST_ROOT, 'project', 'site_media')
         settings.DEBUG = True
@@ -50,18 +50,11 @@ class StaticFilesTestCase(TestCase):
             'django.contrib.staticfiles.finders.AppDirectoriesFinder',
             'django.contrib.staticfiles.finders.DefaultStorageFinder',
         )
-        settings.INSTALLED_APPS = [
-            'django.contrib.admin',
-            'django.contrib.staticfiles',
-            'regressiontests.staticfiles_tests',
-            'regressiontests.staticfiles_tests.apps.test',
-            'regressiontests.staticfiles_tests.apps.no_label',
-        ]
 
         # Clear the cached default_storage out, this is because when it first
         # gets accessed (by some other test), it evaluates settings.MEDIA_ROOT,
         # since we're planning on changing that we need to clear out the cache.
-        default_storage._wrapped = None
+        default_storage._wrapped = empty
 
         # To make sure SVN doesn't hangs itself with the non-ASCII characters
         # during checkout, we actually create one file dynamically.
@@ -82,7 +75,6 @@ class StaticFilesTestCase(TestCase):
         settings.STATIC_URL = self.old_static_url
         settings.STATICFILES_DIRS = self.old_staticfiles_dirs
         settings.STATICFILES_FINDERS = self.old_staticfiles_finders
-        settings.INSTALLED_APPS = self.old_installed_apps
         if os.path.exists(self._nonascii_filepath):
             os.unlink(self._nonascii_filepath)
 
@@ -352,15 +344,23 @@ class TestServeAdminMedia(TestServeStatic):
 
 class FinderTestCase(object):
     """
-    Base finder test mixin
+    Base finder test mixin.
+
+    On Windows, sometimes the case of the path we ask the finders for and the
+    path(s) they find can differ. Compare them using os.path.normcase() to
+    avoid false negatives.
     """
     def test_find_first(self):
         src, dst = self.find_first
-        self.assertEqual(self.finder.find(src), dst)
+        found = self.finder.find(src)
+        self.assertEqual(os.path.normcase(found), os.path.normcase(dst))
 
     def test_find_all(self):
         src, dst = self.find_all
-        self.assertEqual(self.finder.find(src, all=True), dst)
+        found = self.finder.find(src, all=True)
+        found = [os.path.normcase(f) for f in found]
+        dst = [os.path.normcase(d) for d in dst]
+        self.assertEqual(found, dst)
 
 
 class TestFileSystemFinder(StaticFilesTestCase, FinderTestCase):

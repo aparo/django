@@ -70,6 +70,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     needs_datetime_string_cast = False
     interprets_empty_strings_as_nulls = True
     uses_savepoints = True
+    has_select_for_update = True
+    has_select_for_update_nowait = True
     can_return_id_from_insert = True
     allow_sliced_subqueries = False
     supports_subqueries_in_group_by = False
@@ -84,8 +86,8 @@ class DatabaseOperations(BaseDatabaseOperations):
     def autoinc_sql(self, table, column):
         # To simulate auto-incrementing primary keys in Oracle, we have to
         # create a sequence and a trigger.
-        sq_name = get_sequence_name(table)
-        tr_name = get_trigger_name(table)
+        sq_name = self._get_sequence_name(table)
+        tr_name = self._get_trigger_name(table)
         tbl_name = self.quote_name(table)
         col_name = self.quote_name(column)
         sequence_sql = """
@@ -174,12 +176,6 @@ WHEN (new.%(col_name)s IS NULL)
         # classes to normalize values from the database (the to_python
         # method is used for validation and isn't what we want here).
         elif isinstance(value, Database.Timestamp):
-            # In Python 2.3, the cx_Oracle driver returns its own
-            # Timestamp object that we must convert to a datetime class.
-            if not isinstance(value, datetime.datetime):
-                value = datetime.datetime(value.year, value.month,
-                        value.day, value.hour, value.minute, value.second,
-                        value.fsecond)
             if field and field.get_internal_type() == 'DateTimeField':
                 pass
             elif field and field.get_internal_type() == 'DateField':
@@ -197,7 +193,7 @@ WHEN (new.%(col_name)s IS NULL)
         return " DEFERRABLE INITIALLY DEFERRED"
 
     def drop_sequence_sql(self, table):
-        return "DROP SEQUENCE %s;" % self.quote_name(get_sequence_name(table))
+        return "DROP SEQUENCE %s;" % self.quote_name(self._get_sequence_name(table))
 
     def fetch_returned_insert_id(self, cursor):
         return long(cursor._insert_id_var.getvalue())
@@ -208,8 +204,13 @@ WHEN (new.%(col_name)s IS NULL)
         else:
             return "%s"
 
+    def last_executed_query(self, cursor, sql, params):
+        # http://cx-oracle.sourceforge.net/html/cursor.html#Cursor.statement
+        # The DB API definition does not define this attribute.
+        return cursor.statement
+
     def last_insert_id(self, cursor, table_name, pk_name):
-        sq_name = get_sequence_name(table_name)
+        sq_name = self._get_sequence_name(table_name)
         cursor.execute('SELECT "%s".currval FROM dual' % sq_name)
         return cursor.fetchone()[0]
 
@@ -258,9 +259,8 @@ WHEN (new.%(col_name)s IS NULL)
     def regex_lookup(self, lookup_type):
         # If regex_lookup is called before it's been initialized, then create
         # a cursor to initialize it and recur.
-        from django.db import connection
-        connection.cursor()
-        return connection.ops.regex_lookup(lookup_type)
+        self.connection.cursor()
+        return self.connection.ops.regex_lookup(lookup_type)
 
     def return_insert_id(self):
         return "RETURNING %s INTO %%s", (InsertIdVar(),)
@@ -285,7 +285,7 @@ WHEN (new.%(col_name)s IS NULL)
             # Since we've just deleted all the rows, running our sequence
             # ALTER code will reset the sequence to 0.
             for sequence_info in sequences:
-                sequence_name = get_sequence_name(sequence_info['table'])
+                sequence_name = self._get_sequence_name(sequence_info['table'])
                 table_name = self.quote_name(sequence_info['table'])
                 column_name = self.quote_name(sequence_info['column'] or 'id')
                 query = _get_sequence_reset_sql() % {'sequence': sequence_name,
@@ -304,7 +304,7 @@ WHEN (new.%(col_name)s IS NULL)
             for f in model._meta.local_fields:
                 if isinstance(f, models.AutoField):
                     table_name = self.quote_name(model._meta.db_table)
-                    sequence_name = get_sequence_name(model._meta.db_table)
+                    sequence_name = self._get_sequence_name(model._meta.db_table)
                     column_name = self.quote_name(f.column)
                     output.append(query % {'sequence': sequence_name,
                                            'table': table_name,
@@ -315,7 +315,7 @@ WHEN (new.%(col_name)s IS NULL)
             for f in model._meta.many_to_many:
                 if not f.rel.through:
                     table_name = self.quote_name(f.m2m_db_table())
-                    sequence_name = get_sequence_name(f.m2m_db_table())
+                    sequence_name = self._get_sequence_name(f.m2m_db_table())
                     column_name = self.quote_name('id')
                     output.append(query % {'sequence': sequence_name,
                                            'table': table_name,
@@ -364,6 +364,14 @@ WHEN (new.%(col_name)s IS NULL)
         elif connector == '|':
             raise NotImplementedError("Bit-wise or is not supported in Oracle.")
         return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
+
+    def _get_sequence_name(self, table):
+        name_length = self.max_name_length() - 3
+        return '%s_SQ' % util.truncate_name(table, name_length).upper()
+
+    def _get_trigger_name(self, table):
+        name_length = self.max_name_length() - 3
+        return '%s_TR' % util.truncate_name(table, name_length).upper()
 
 
 class _UninitializedOperatorsDescriptor(object):
@@ -415,7 +423,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         self.features = DatabaseFeatures(self)
         use_returning_into = self.settings_dict["OPTIONS"].get('use_returning_into', True)
         self.features.can_return_id_from_insert = use_returning_into
-        self.ops = DatabaseOperations()
+        self.ops = DatabaseOperations(self)
         self.client = DatabaseClient(self)
         self.creation = DatabaseCreation(self)
         self.introspection = DatabaseIntrospection(self)
@@ -776,13 +784,3 @@ BEGIN
     END LOOP;
 END;
 /"""
-
-
-def get_sequence_name(table):
-    name_length = DatabaseOperations().max_name_length() - 3
-    return '%s_SQ' % util.truncate_name(table, name_length).upper()
-
-
-def get_trigger_name(table):
-    name_length = DatabaseOperations().max_name_length() - 3
-    return '%s_TR' % util.truncate_name(table, name_length).upper()

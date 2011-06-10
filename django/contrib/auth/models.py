@@ -100,7 +100,7 @@ class Group(models.Model):
 
     A user in a group automatically has all the permissions granted to that group. For example, if the group Site editors has the permission can_edit_home_page, any user in that group will have that permission.
 
-    Beyond permissions, groups are a convenient way to categorize users to apply some label, or extended functionality, to them. For example, you could create a group 'Special users', and you could write code that would do special things to those users -- such as giving them access to a members-only portion of your site, or sending them members-only e-mail messages.
+    Beyond permissions, groups are a convenient way to categorize users to apply some label, or extended functionality, to them. For example, you could create a group 'Special users', and you could write code that would do special things to those users -- such as giving them access to a members-only portion of your site, or sending them members-only email messages.
     """
     name = models.CharField(_('name'), max_length=80, unique=True)
     permissions = models.ManyToManyField(Permission, verbose_name=_('permissions'), blank=True)
@@ -115,7 +115,7 @@ class Group(models.Model):
 class UserManager(models.Manager):
     def create_user(self, username, email, password=None):
         """
-        Creates and saves a User with the given username, e-mail and password.
+        Creates and saves a User with the given username, email and password.
         """
         now = datetime.datetime.now()
 
@@ -345,15 +345,8 @@ class User(models.Model):
 
         return _user_has_module_perms(self, app_label)
 
-    def get_and_delete_messages(self):
-        messages = []
-        for m in self.message_set.all():
-            messages.append(m.message)
-            m.delete()
-        return messages
-
     def email_user(self, subject, message, from_email=None):
-        "Sends an e-mail to this User."
+        "Sends an email to this User."
         from django.core.mail import send_mail
         send_mail(subject, message, from_email, [self.email])
 
@@ -386,28 +379,6 @@ class User(models.Model):
                 raise SiteProfileNotAvailable
         return self._profile_cache
 
-    def _get_message_set(self):
-        import warnings
-        warnings.warn('The user messaging API is deprecated. Please update'
-                      ' your code to use the new messages framework.',
-                      category=DeprecationWarning)
-        return self._message_set
-    message_set = property(_get_message_set)
-
-class Message(models.Model):
-    """
-    The message system is a lightweight way to queue messages for given
-    users. A message is associated with a User instance (so it is only
-    applicable for registered users). There's no concept of expiration or
-    timestamps. Messages are created by the Django admin after successful
-    actions. For example, "The poll Foo was created successfully." is a
-    message.
-    """
-    user = models.ForeignKey(User, related_name='_message_set')
-    message = models.TextField(_('message'))
-
-    def __unicode__(self):
-        return self.message
 
 class AnonymousUser(object):
     id = None
@@ -473,9 +444,6 @@ class AnonymousUser(object):
 
     def has_module_perms(self, module):
         return _user_has_module_perms(self, module)
-
-    def get_and_delete_messages(self):
-        return []
 
     def is_anonymous(self):
         return True

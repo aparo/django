@@ -17,13 +17,12 @@ except ImportError:
         # Python 2.6 and greater
         from urlparse import parse_qsl
     except ImportError:
-        # Python 2.5, 2.4.  Works on Python 2.6 but raises
-        # PendingDeprecationWarning
+        # Python 2.5.  Works on Python 2.6 but raises PendingDeprecationWarning
         from cgi import parse_qsl
 
 import Cookie
 # httponly support exists in Python 2.6's Cookie library,
-# but not in Python 2.4 or 2.5.
+# but not in Python 2.5.
 _morsel_supports_httponly = Cookie.Morsel._reserved.has_key('httponly')
 # Some versions of Python 2.7 and later won't need this encoding bug fix:
 _cookie_encodes_correctly = Cookie.SimpleCookie().value_encode(';') == (';', '"\\073"')
@@ -115,13 +114,14 @@ class CompatCookie(SimpleCookie):
         super(CompatCookie, self).__init__(*args, **kwargs)
         import warnings
         warnings.warn("CompatCookie is deprecated, use django.http.SimpleCookie instead.",
-                      PendingDeprecationWarning)
+                      DeprecationWarning)
 
 from django.utils.datastructures import MultiValueDict, ImmutableList
 from django.utils.encoding import smart_str, iri_to_uri, force_unicode
 from django.utils.http import cookie_date
 from django.http.multipartparser import MultiPartParser
 from django.conf import settings
+from django.core import signing
 from django.core.files import uploadhandler
 from utils import *
 
@@ -131,6 +131,55 @@ absolute_http_url_re = re.compile(r"^https?://", re.I)
 
 class Http404(Exception):
     pass
+
+RAISE_ERROR = object()
+
+
+def build_request_repr(request, path_override=None, GET_override=None,
+                       POST_override=None, COOKIES_override=None,
+                       META_override=None):
+    """
+    Builds and returns the request's representation string. The request's
+    attributes may be overridden by pre-processed values.
+    """
+    # Since this is called as part of error handling, we need to be very
+    # robust against potentially malformed input.
+    try:
+        get = (pformat(GET_override)
+               if GET_override is not None
+               else pformat(request.GET))
+    except:
+        get = '<could not parse>'
+    if request._post_parse_error:
+        post = '<could not parse>'
+    else:
+        try:
+            post = (pformat(POST_override)
+                    if POST_override is not None
+                    else pformat(request.POST))
+        except:
+            post = '<could not parse>'
+    try:
+        cookies = (pformat(COOKIES_override)
+                   if COOKIES_override is not None
+                   else pformat(request.COOKIES))
+    except:
+        cookies = '<could not parse>'
+    try:
+        meta = (pformat(META_override)
+                if META_override is not None
+                else pformat(request.META))
+    except:
+        meta = '<could not parse>'
+    path = path_override if path_override is not None else request.path
+    return smart_str(u'<%s\npath:%s,\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s>' %
+                     (request.__class__.__name__,
+                      path,
+                      unicode(get),
+                      unicode(post),
+                      unicode(cookies),
+                      unicode(meta)))
+
 
 class HttpRequest(object):
     """A basic HTTP request."""
@@ -144,11 +193,10 @@ class HttpRequest(object):
         self.path = ''
         self.path_info = ''
         self.method = None
+        self._post_parse_error = False
 
     def __repr__(self):
-        return '<HttpRequest\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s>' % \
-            (pformat(self.GET), pformat(self.POST), pformat(self.COOKIES),
-            pformat(self.META))
+        return build_request_repr(self)
 
     def get_host(self):
         """Returns the HTTP host using the environment or request headers."""
@@ -169,6 +217,29 @@ class HttpRequest(object):
         # RFC 3986 requires query string arguments to be in the ASCII range.
         # Rather than crash if this doesn't happen, we encode defensively.
         return '%s%s' % (self.path, self.META.get('QUERY_STRING', '') and ('?' + iri_to_uri(self.META.get('QUERY_STRING', ''))) or '')
+
+    def get_signed_cookie(self, key, default=RAISE_ERROR, salt='', max_age=None):
+        """
+        Attempts to return a signed cookie. If the signature fails or the
+        cookie has expired, raises an exception... unless you provide the
+        default argument in which case that value will be returned instead.
+        """
+        try:
+            cookie_value = self.COOKIES[key].encode('utf-8')
+        except KeyError:
+            if default is not RAISE_ERROR:
+                return default
+            else:
+                raise
+        try:
+            value = signing.get_cookie_signer(salt=key + salt).unsign(
+                cookie_value, max_age=max_age)
+        except signing.BadSignature:
+            if default is not RAISE_ERROR:
+                return default
+            else:
+                raise
+        return value
 
     def build_absolute_uri(self, location=None):
         """
@@ -583,6 +654,10 @@ class HttpResponse(object):
             self.cookies[key]['secure'] = True
         if httponly:
             self.cookies[key]['httponly'] = True
+
+    def set_signed_cookie(self, key, value, salt='', **kwargs):
+        value = signing.get_cookie_signer(salt=key + salt).sign(value)
+        return self.set_cookie(key, value, **kwargs)
 
     def delete_cookie(self, key, path='/', domain=None):
         self.set_cookie(key, max_age=0, path=path, domain=domain,

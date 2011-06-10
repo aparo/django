@@ -67,7 +67,8 @@ def add_lazy_relation(cls, field, relation, operation):
     # string right away. If get_model returns None, it means that the related
     # model isn't loaded yet, so we need to pend the relation until the class
     # is prepared.
-    model = get_model(app_label, model_name, False)
+    model = get_model(app_label, model_name,
+                      seed_cache=False, only_installed=False)
     if model:
         operation(field, model, cls)
     else:
@@ -458,9 +459,7 @@ class ForeignRelatedObjectsDescriptor(object):
                 remove.alters_data = True
 
                 def clear(self):
-                    for obj in self.all():
-                        setattr(obj, rel_field.name, None)
-                        obj.save()
+                    self.update(**{rel_field.name: None})
                 clear.alters_data = True
 
         manager = RelatedManager()

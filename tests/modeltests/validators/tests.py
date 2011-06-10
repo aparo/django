@@ -22,12 +22,14 @@ TEST_DATA = (
 
     (validate_email, 'email@here.com', None),
     (validate_email, 'weirder-email@here.and.there.com', None),
+    (validate_email, 'email@[127.0.0.1]', None),
 
     (validate_email, None, ValidationError),
     (validate_email, '', ValidationError),
     (validate_email, 'abc', ValidationError),
     (validate_email, 'a @x.cz', ValidationError),
     (validate_email, 'something@@somewhere.com', ValidationError),
+    (validate_email, 'email@127.0.0.1', ValidationError),
 
     (validate_slug, 'slug-ok', None),
     (validate_slug, 'longer-slug-still-ok', None),
@@ -112,6 +114,11 @@ TEST_DATA = (
     (BaseValidator(True), True, None),
     (BaseValidator(True), False, ValidationError),
 
+    (RegexValidator(), '', None),
+    (RegexValidator(), 'x1x2', None),
+    (RegexValidator('[0-9]+'), 'xxxxxx', ValidationError),
+    (RegexValidator('[0-9]+'), '1234', None),
+    (RegexValidator(re.compile('[0-9]+')), '1234', None),
     (RegexValidator('.*'), '', None),
     (RegexValidator(re.compile('.*')), '', None),
     (RegexValidator('.*'), 'xxxxx', None),

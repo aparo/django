@@ -151,7 +151,7 @@ pre_delete
    :module:
 
 Sent at the beginning of a model's :meth:`~django.db.models.Model.delete`
-method.
+method and a queryset's :meth:`~django.db.models.query.QuerySet.delete` method.
 
 Arguments sent with this signal:
 
@@ -172,8 +172,9 @@ post_delete
 .. data:: django.db.models.signals.post_delete
    :module:
 
-Like :data:`pre_delete`, but sent at the end of the
-:meth:`~django.db.models.Model.delete` method.
+Like :data:`pre_delete`, but sent at the end of a model's
+:meth:`~django.db.models.Model.delete` method and a queryset's
+:meth:`~django.db.models.query.QuerySet.delete` method.
 
 Arguments sent with this signal:
 
@@ -223,17 +224,17 @@ Arguments sent with this signal:
     This can be one of the following:
 
     ``"pre_add"``
-        Sent *before* one or more objects are added to the relation
+        Sent *before* one or more objects are added to the relation.
     ``"post_add"``
-        Sent *after* one or more objects are added to the relation
+        Sent *after* one or more objects are added to the relation.
     ``"pre_remove"``
-        Sent *after* one or more objects are removed from the relation
+        Sent *before* one or more objects are removed from the relation.
     ``"post_remove"``
-        Sent *after* one or more objects are removed from the relation
+        Sent *after* one or more objects are removed from the relation.
     ``"pre_clear"``
-        Sent *before* the relation is cleared
+        Sent *before* the relation is cleared.
     ``"post_clear"``
-        Sent *after* the relation is cleared
+        Sent *after* the relation is cleared.
 
 ``reverse``
     Indicates which side of the relation is updated (i.e., if it is the
@@ -388,7 +389,7 @@ Arguments sent with this signal:
     For example, the :mod:`django.contrib.auth` app only prompts to create a
     superuser when ``interactive`` is ``True``.
 
-For example, yourapp/signals/__init__.py could be written like::
+For example, ``yourapp/management/__init__.py`` could be written like::
 
     from django.db.models.signals import post_syncdb
     import yourapp.models
@@ -458,6 +459,29 @@ Test signals
    :synopsis: Signals sent during testing.
 
 Signals only sent when :doc:`running tests </topics/testing>`.
+
+setting_changed
+---------------
+
+.. versionadded:: 1.4
+
+.. data:: django.test.signals.setting_changed
+   :module:
+
+Sent when some :ref:`settings are overridden <overriding-setting>` with the
+:meth:`django.test.TestCase.setting` context manager or the
+:func:`django.test.utils.override_settings` decorator/context manager.
+
+Arguments sent with this signal:
+
+``sender``
+    The setting name (string).
+
+``setting``
+    Same as sender
+
+``value``
+    The new setting value.
 
 template_rendered
 -----------------

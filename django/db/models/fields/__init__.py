@@ -7,7 +7,6 @@ import math
 from itertools import tee
 
 from django.db import connection
-from django.db.models.fields.subclassing import LegacyConnection
 from django.db.models.query_utils import QueryWrapper
 from django.conf import settings
 from django import forms
@@ -46,7 +45,6 @@ class FieldDoesNotExist(Exception):
 
 class Field(object):
     """Base class for all field types"""
-    __metaclass__ = LegacyConnection
 
     # Designates whether empty strings fundamentally are allowed at the
     # database level.
@@ -62,6 +60,7 @@ class Field(object):
         'invalid_choice': _(u'Value %r is not a valid choice.'),
         'null': _(u'This field cannot be null.'),
         'blank': _(u'This field cannot be blank.'),
+        'unique': _(u'%(model_name)s with this %(field_label)s already exists.'),
     }
 
     # Generic field type description, usually overriden by subclasses
@@ -449,6 +448,16 @@ class Field(object):
     def value_from_object(self, obj):
         "Returns the value of this field in the given model instance."
         return getattr(obj, self.attname)
+
+    def __repr__(self):
+        """
+        Displays the module, class and name of the field.
+        """
+        path = '%s.%s' % (self.__class__.__module__, self.__class__.__name__)
+        name = getattr(self, 'name', None)
+        if name is not None:
+            return '<%s: %s>' % (path, name)
+        return '<%s>' % path
 
 class AutoField(Field):
     description = _("Integer")
@@ -1157,14 +1166,3 @@ class URLField(CharField):
         }
         defaults.update(kwargs)
         return super(URLField, self).formfield(**defaults)
-
-class XMLField(TextField):
-    description = _("XML text")
-
-    def __init__(self, verbose_name=None, name=None, schema_path=None, **kwargs):
-        import warnings
-        warnings.warn("Use of XMLField has been deprecated; please use TextField instead.",
-                      DeprecationWarning)
-        self.schema_path = schema_path
-        Field.__init__(self, verbose_name, name, **kwargs)
-

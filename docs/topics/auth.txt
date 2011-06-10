@@ -19,10 +19,6 @@ The auth system consists of:
       a certain task.
     * Groups: A generic way of applying labels and permissions to more than one
       user.
-    * Messages: A simple way to queue messages for given users.
-
-.. deprecated:: 1.2
-   The Messages component of the auth system will be removed in Django 1.4.
 
 Installation
 ============
@@ -84,7 +80,7 @@ Fields
 
     .. attribute:: models.User.email
 
-        Optional. E-mail address.
+        Optional. Email address.
 
     .. attribute:: models.User.password
 
@@ -256,14 +252,9 @@ Methods
         (the Django app label). If the user is inactive, this method will
         always return ``False``.
 
-    .. method:: models.User.get_and_delete_messages()
-
-        Returns a list of :class:`~django.contrib.auth.models.Message` objects
-        in the user's queue and deletes the messages from the queue.
-
     .. method:: models.User.email_user(subject, message, from_email=None)
 
-        Sends an e-mail to the user. If
+        Sends an email to the user. If
         :attr:`~django.contrib.auth.models.User.from_email` is ``None``, Django
         uses the :setting:`DEFAULT_FROM_EMAIL`.
 
@@ -292,7 +283,7 @@ Manager functions
         The :attr:`~django.contrib.auth.models.User.username` and
         :attr:`~django.contrib.auth.models.User.password` are set as given. The
         domain portion of :attr:`~django.contrib.auth.models.User.email` is
-        automatically convered to lowercase, and the returned
+        automatically converted to lowercase, and the returned
         :class:`~django.contrib.auth.models.User` object will have
         :attr:`~models.User.is_active` set to ``True``.
 
@@ -476,8 +467,8 @@ profile" -- for this purpose.
 To make use of this feature, define a model with fields for the
 additional information you'd like to store, or additional methods
 you'd like to have available, and also add a
-:class:`~django.db.models.Field.OneToOneField` from your model to the
-:class:`~django.contrib.auth.models.User` model. This will ensure only
+:class:`~django.db.models.Field.OneToOneField` named ``user`` from your model
+to the :class:`~django.contrib.auth.models.User` model. This will ensure only
 one instance of your model can be created for each
 :class:`~django.contrib.auth.models.User`.
 
@@ -872,6 +863,16 @@ The login_required decorator
     .. _forms documentation: ../forms/
     .. _site framework docs: ../sites/
 
+    .. versionadded:: 1.4
+
+    The :func:`~views.login` view and the :ref:`other-built-in-views` now all
+    return a :class:`~django.template.response.TemplateResponse` instance,
+    which allows you to easily customize the response data before rendering.
+    For more details, see the
+    :doc:`TemplateResponse documentation </ref/template-response>`.
+
+.. _other-built-in-views:
+
 Other built-in views
 --------------------
 
@@ -948,7 +949,7 @@ includes a few other useful built-in views located in
 
     Allows a user to reset their password by generating a one-time use link
     that can be used to reset the password, and sending that link to the
-    user's registered e-mail address.
+    user's registered email address.
 
     .. versionchanged:: 1.3
         The ``from_email`` argument was added.
@@ -960,7 +961,7 @@ includes a few other useful built-in views located in
           :file:`registration/password_reset_form.html` if not supplied.
 
         * ``email_template_name``: The full name of a template to use for
-          generating the e-mail with the new password. This will default to
+          generating the email with the new password. This will default to
           :file:`registration/password_reset_email.html` if not supplied.
 
         * ``password_reset_form``: Form that will be used to set the password.
@@ -973,7 +974,7 @@ includes a few other useful built-in views located in
         * ``post_reset_redirect``: The URL to redirect to after a successful
           password change.
 
-        * ``from_email``: A valid e-mail address. By default Django uses
+        * ``from_email``: A valid email address. By default Django uses
           the :setting:`DEFAULT_FROM_EMAIL`.
 
     **Template context:**
@@ -989,25 +990,6 @@ includes a few other useful built-in views located in
         * ``template_name``: The full name of a template to use. This will
           default to :file:`registration/password_reset_done.html` if not
           supplied.
-
-.. function:: redirect_to_login(next[, login_url, redirect_field_name])
-
-    Redirects to the login page, and then back to another URL after a
-    successful login.
-
-    **Required arguments:**
-
-        * ``next``: The URL to redirect to after a successful login.
-
-    **Optional arguments:**
-
-        * ``login_url``: The URL of the login page to redirect to. This will
-          default to :setting:`settings.LOGIN_URL <LOGIN_URL>` if not supplied.
-
-        * ``redirect_field_name``: The name of a ``GET`` field containing the
-          URL to redirect to after log out. Overrides ``next`` if the given
-          ``GET`` parameter is passed.
-
 
 .. function:: password_reset_confirm(request[, uidb36, token, template_name, token_generator, set_password_form, post_reset_redirect])
 
@@ -1038,6 +1020,29 @@ includes a few other useful built-in views located in
        * ``template_name``: The full name of a template to display the view.
          This will default to :file:`registration/password_reset_complete.html`.
 
+Helper functions
+----------------
+
+.. currentmodule:: django.contrib.auth.views
+
+.. function:: redirect_to_login(next[, login_url, redirect_field_name])
+
+    Redirects to the login page, and then back to another URL after a
+    successful login.
+
+    **Required arguments:**
+
+        * ``next``: The URL to redirect to after a successful login.
+
+    **Optional arguments:**
+
+        * ``login_url``: The URL of the login page to redirect to. This will
+          default to :setting:`settings.LOGIN_URL <LOGIN_URL>` if not supplied.
+
+        * ``redirect_field_name``: The name of a ``GET`` field containing the
+          URL to redirect to after log out. Overrides ``next`` if the given
+          ``GET`` parameter is passed.
+
 Built-in forms
 --------------
 
@@ -1061,7 +1066,7 @@ provides several built-in forms located in :mod:`django.contrib.auth.forms`:
 
 .. class:: PasswordResetForm
 
-    A form for generating and e-mailing a one-time use link to reset a
+    A form for generating and emailing a one-time use link to reset a
     user's password.
 
 .. class:: SetPasswordForm
@@ -1239,7 +1244,7 @@ To create custom permissions for a given model object, use the ``permissions``
 :ref:`model Meta attribute <meta-options>`.
 
 This example Task model creates three custom permissions, i.e., actions users
-can or cannot do with Task instances, specific to your appication::
+can or cannot do with Task instances, specific to your application::
 
     class Task(models.Model):
         ...
@@ -1384,72 +1389,8 @@ example, if the group ``Site editors`` has the permission
 Beyond permissions, groups are a convenient way to categorize users to give
 them some label, or extended functionality. For example, you could create a
 group ``'Special users'``, and you could write code that could, say, give them
-access to a members-only portion of your site, or send them members-only e-mail
+access to a members-only portion of your site, or send them members-only email
 messages.
-
-Messages
-========
-
-.. deprecated:: 1.2
-   This functionality will be removed in Django 1.4.  You should use the
-   :doc:`messages framework </ref/contrib/messages>` for all new projects and
-   begin to update your existing code immediately.
-
-The message system is a lightweight way to queue messages for given users.
-
-A message is associated with a :class:`~django.contrib.auth.models.User`.
-There's no concept of expiration or timestamps.
-
-Messages are used by the Django admin after successful actions. For example,
-``"The poll Foo was created successfully."`` is a message.
-
-The API is simple:
-
-.. method:: models.User.message_set.create(message)
-
-    To create a new message, use
-    ``user_obj.message_set.create(message='message_text')``.
-
-    To retrieve/delete messages, use
-    :meth:`user_obj.get_and_delete_messages() <django.contrib.auth.models.User.get_and_delete_messages>`,
-    which returns a list of ``Message`` objects in the user's queue (if any)
-    and deletes the messages from the queue.
-
-In this example view, the system saves a message for the user after creating
-a playlist::
-
-    def create_playlist(request, songs):
-        # Create the playlist with the given songs.
-        # ...
-        request.user.message_set.create(message="Your playlist was added successfully.")
-        return render_to_response("playlists/create.html",
-            context_instance=RequestContext(request))
-
-When you use :class:`~django.template.context.RequestContext`, the currently
-logged-in user and his/her messages are made available in the
-:doc:`template context </ref/templates/api>` as the template variable
-``{{ messages }}``. Here's an example of template code that displays messages:
-
-.. code-block:: html+django
-
-    {% if messages %}
-    <ul>
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-
-.. versionchanged:: 1.2
-   The ``messages`` template variable uses a backwards compatible method in the
-   :doc:`messages framework </ref/contrib/messages>` to retrieve messages from
-   both the user ``Message`` model and from the new framework.  Unlike in
-   previous revisions, the messages will not be erased unless they are actually
-   displayed.
-
-Finally, note that this messages framework only works with users in the user
-database. To send messages to anonymous users, use the
-:doc:`messages framework </ref/contrib/messages>`.
 
 .. _authentication-backends:
 

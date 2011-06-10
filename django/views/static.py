@@ -2,9 +2,11 @@
 Views and functions for serving static files. These are only to be used
 during development, and SHOULD NOT be used in a production setting.
 """
+from __future__ import with_statement
 
 import mimetypes
 import os
+import stat
 import posixpath
 import re
 import urllib
@@ -56,17 +58,19 @@ def serve(request, path, document_root=None, show_indexes=False):
     if not was_modified_since(request.META.get('HTTP_IF_MODIFIED_SINCE'),
                               statobj.st_mtime, statobj.st_size):
         return HttpResponseNotModified(mimetype=mimetype)
-    response = HttpResponse(open(fullpath, 'rb').read(), mimetype=mimetype)
+    with open(fullpath, 'rb') as f:
+        response = HttpResponse(f.read(), mimetype=mimetype)
     response["Last-Modified"] = http_date(statobj.st_mtime)
-    response["Content-Length"] = statobj.st_size
+    if stat.S_ISREG(statobj.st_mode):
+        response["Content-Length"] = statobj.st_size
     if encoding:
         response["Content-Encoding"] = encoding
     return response
 
 
 DEFAULT_DIRECTORY_INDEX_TEMPLATE = """
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!DOCTYPE html>
+<html lang="en">
   <head>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
     <meta http-equiv="Content-Language" content="en-us" />

@@ -156,7 +156,7 @@ and handle logging calls on a per-module basis. However, if you have
 some other way of organizing your logging messages, you can provide
 any dot-separated name to identify your logger::
 
-    # Get an instance of a specfic named logger
+    # Get an instance of a specific named logger
     logger = logging.getLogger('project.interesting.stuff')
 
 The dotted paths of logger names define a hierarchy. The
@@ -225,7 +225,7 @@ Since the loading of settings is one of the first things that Django
 does, you can be certain that loggers are always ready for use in your
 project code.
 
-.. _dictConfig format: http://docs.python.org/library/logging.html#configuration-dictionary-schema
+.. _dictConfig format: http://docs.python.org/library/logging.config.html#configuration-dictionary-schema
 
 .. _a third-party library: http://bitbucket.org/vinay.sajip/dictconfig
 
@@ -327,7 +327,7 @@ This logging configuration does the following things:
           message to stdout. This handler uses the `simple` output
           format.
 
-        * ``mail_admins``, an AdminEmailHandler, which will e-mail any
+        * ``mail_admins``, an AdminEmailHandler, which will email any
           ``ERROR`` level message to the site admins. This handler uses
           the ``special`` filter.
 
@@ -347,7 +347,7 @@ This logging configuration does the following things:
           handlers -- the ``console``, and ``mail_admins``. This
           means that all ``INFO`` level messages (or higher) will be
           printed to the console; ``ERROR`` and ``CRITICAL``
-          messages will also be output via e-mail.
+          messages will also be output via email.
 
 .. admonition:: Custom handlers and circular imports
 
@@ -441,10 +441,6 @@ Messages to this logger have the following extra context:
     * ``request``: The request object that generated the logging
       message.
 
-.. note::
-    Due to a limitation in the logging library, this extra
-    context is not available if you are using Python 2.4.
-
 ``django.db.backends``
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -462,10 +458,6 @@ For performance reasons, SQL logging is only enabled when
 ``settings.DEBUG`` is set to ``True``, regardless of the logging
 level or handlers that are installed.
 
-.. note::
-    Due to a limitation in the logging library, this extra
-    context is not available if you are using Python 2.4.
-
 Handlers
 --------
 
@@ -474,19 +466,19 @@ Python logging module.
 
 .. class:: AdminEmailHandler([include_html=False])
 
-    This handler sends an e-mail to the site admins for each log
+    This handler sends an email to the site admins for each log
     message it receives.
 
     If the log record contains a ``request`` attribute, the full details
-    of the request will be included in the e-mail.
+    of the request will be included in the email.
 
     If the log record contains stack trace information, that stack
-    trace will be included in the e-mail.
+    trace will be included in the email.
 
     The ``include_html`` argument of ``AdminEmailHandler`` is used to
-    control whether the traceback e-mail includes an HTML attachment
+    control whether the traceback email includes an HTML attachment
     containing the full content of the debug Web page that would have been
-    produced if ``DEBUG`` were ``True``. To set this value in your
+    produced if :setting:`DEBUG` were ``True``. To set this value in your
     configuration, include it in the handler definition for
     ``django.utils.log.AdminEmailHandler``, like this::
 
@@ -498,12 +490,14 @@ Python logging module.
             }
         },
 
-    Note that this HTML version of the e-mail contains a full traceback,
+    Note that this HTML version of the email contains a full traceback,
     with names and values of local variables at each level of the stack, plus
     the values of your Django settings. This information is potentially very
-    sensitive, and you may not want to send it over e-mail. Consider using
+    sensitive, and you may not want to send it over email. Consider using
     something such as `django-sentry`_ to get the best of both worlds -- the
     rich information of full tracebacks plus the security of *not* sending the
-    information over e-mail.
+    information over email. You may also explicitly designate certain
+    sensitive information to be filtered out of error reports -- learn more on
+    :ref:`Filtering error reports<filtering-error-reports>`.
 
 .. _django-sentry: http://pypi.python.org/pypi/django-sentry

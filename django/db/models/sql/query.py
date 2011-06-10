@@ -74,7 +74,7 @@ class RawQuery(object):
         return iter(result)
 
     def __repr__(self):
-        return "<RawQuery: %r>" % (self.sql % self.params)
+        return "<RawQuery: %r>" % (self.sql % tuple(self.params))
 
     def _execute_query(self):
         self.cursor = connections[self.using].cursor()
@@ -125,6 +125,8 @@ class Query(object):
         self.order_by = []
         self.low_mark, self.high_mark = 0, None  # Used for offset/limit
         self.distinct = False
+        self.select_for_update = False
+        self.select_for_update_nowait = False
         self.select_related = False
         self.related_select_cols = []
 
@@ -254,6 +256,8 @@ class Query(object):
         obj.order_by = self.order_by[:]
         obj.low_mark, obj.high_mark = self.low_mark, self.high_mark
         obj.distinct = self.distinct
+        obj.select_for_update = self.select_for_update
+        obj.select_for_update_nowait = self.select_for_update_nowait
         obj.select_related = self.select_related
         obj.related_select_cols = []
         obj.aggregates = copy.deepcopy(self.aggregates, memo=memo)
@@ -360,6 +364,7 @@ class Query(object):
 
         query.clear_ordering(True)
         query.clear_limits()
+        query.select_for_update = False
         query.select_related = False
         query.related_select_cols = []
         query.related_select_fields = []
@@ -450,7 +455,11 @@ class Query(object):
                 # An unused alias.
                 continue
             promote = (rhs.alias_map[alias][JOIN_TYPE] == self.LOUTER)
-            new_alias = self.join(rhs.rev_join_map[alias],
+            lhs, table, lhs_col, col = rhs.rev_join_map[alias]
+            # If the left side of the join was already relabeled, use the
+            # updated alias.
+            lhs = change_map.get(lhs, lhs)
+            new_alias = self.join((lhs, table, lhs_col, col),
                     (conjunction and not first), used, promote, not conjunction)
             used.add(new_alias)
             change_map[alias] = new_alias
@@ -542,7 +551,10 @@ class Query(object):
         columns = set()
         orig_opts = self.model._meta
         seen = {}
-        must_include = {self.model: set([orig_opts.pk])}
+        if orig_opts.proxy:
+            must_include = {orig_opts.proxy_for_model: set([orig_opts.pk])}
+        else:
+            must_include = {self.model: set([orig_opts.pk])}
         for field_name in field_names:
             parts = field_name.split(LOOKUP_SEP)
             cur_model = self.model
@@ -1039,14 +1051,14 @@ class Query(object):
             value = SQLEvaluator(value, self)
             having_clause = value.contains_aggregate
 
-        if parts[0] in self.aggregates:
-            aggregate = self.aggregates[parts[0]]
-            entry = self.where_class()
-            entry.add((aggregate, lookup_type, value), AND)
-            if negate:
-                entry.negate()
-            self.having.add(entry, connector)
-            return
+        for alias, aggregate in self.aggregates.items():
+            if alias in (parts[0], LOOKUP_SEP.join(parts)):
+                entry = self.where_class()
+                entry.add((aggregate, lookup_type, value), AND)
+                if negate:
+                    entry.negate()
+                self.having.add(entry, connector)
+                return
 
         opts = self.get_meta()
         alias = self.get_initial_alias()
@@ -1404,13 +1416,13 @@ class Query(object):
         the final join is against the same column as we are comparing against,
         and is an inner join, we can go back one step in a join chain and
         compare against the LHS of the join instead (and then repeat the
-        optimization). The result, potentially, involves less table joins.
+        optimization). The result, potentially, involves fewer table joins.
 
         The 'target' parameter is the final field being joined to, 'join_list'
         is the full list of join aliases.
 
         The 'last' list contains offsets into 'join_list', corresponding to
-        each component of the filter.  Many-to-many relations, for example, add
+        each component of the filter. Many-to-many relations, for example, add
         two tables to the join list and we want to deal with both tables the
         same way, so 'last' has an entry for the first of the two tables and
         then the table immediately after the second table, in that case.

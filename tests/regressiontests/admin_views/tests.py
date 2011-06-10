@@ -1,4 +1,5 @@
 # coding: utf-8
+from __future__ import with_statement
 
 import re
 import datetime
@@ -20,23 +21,24 @@ from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.views.main import IS_POPUP_VAR
 from django.forms.util import ErrorList
 import django.template.context
+from django.template.response import TemplateResponse
 from django.test import TestCase
-from django.utils import formats
+from django.utils import formats, translation
 from django.utils.cache import get_max_age
 from django.utils.encoding import iri_to_uri
 from django.utils.html import escape
 from django.utils.http import urlencode
-from django.utils.translation import activate, deactivate
 from django.utils import unittest
 
 # local test models
 from models import (Article, BarAccount, CustomArticle, EmptyModel,
-    FooAccount, Gallery, ModelWithStringPrimaryKey,
+    FooAccount, Gallery, PersonAdmin, ModelWithStringPrimaryKey,
     Person, Persona, Picture, Podcast, Section, Subscriber, Vodcast,
     Language, Collector, Widget, Grommet, DooHickey, FancyDoodad, Whatsit,
     Category, Post, Plot, FunkyTag, Chapter, Book, Promo, WorkHour, Employee,
     Question, Answer, Inquisition, Actor, FoodDelivery,
-    RowLevelChangePermissionModel, Paper, CoverLetter, Story, OtherStory)
+    RowLevelChangePermissionModel, Paper, CoverLetter, Story, OtherStory,
+    ComplexSortedPerson)
 
 
 class AdminViewBasicTest(TestCase):
@@ -76,6 +78,7 @@ class AdminViewBasicTest(TestCase):
         A smoke test to ensure GET on the add_view works.
         """
         response = self.client.get('/test_admin/%s/admin_views/section/add/' % self.urlbit)
+        self.assertIsInstance(response, TemplateResponse)
         self.assertEqual(response.status_code, 200)
 
     def testAddWithGETArgs(self):
@@ -91,6 +94,7 @@ class AdminViewBasicTest(TestCase):
         A smoke test to ensure GET on the change_view works.
         """
         response = self.client.get('/test_admin/%s/admin_views/section/1/' % self.urlbit)
+        self.assertIsInstance(response, TemplateResponse)
         self.assertEqual(response.status_code, 200)
 
     def testBasicEditGetStringPK(self):
@@ -201,7 +205,7 @@ class AdminViewBasicTest(TestCase):
         Ensure we can sort on a list_display field that is a callable
         (column 2 is callable_year in ArticleAdmin)
         """
-        response = self.client.get('/test_admin/%s/admin_views/article/' % self.urlbit, {'ot': 'asc', 'o': 2})
+        response = self.client.get('/test_admin/%s/admin_views/article/' % self.urlbit, {'o': 2})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
             response.content.index('Oldest content') < response.content.index('Middle content') and
@@ -214,7 +218,7 @@ class AdminViewBasicTest(TestCase):
         Ensure we can sort on a list_display field that is a Model method
         (colunn 3 is 'model_year' in ArticleAdmin)
         """
-        response = self.client.get('/test_admin/%s/admin_views/article/' % self.urlbit, {'ot': 'dsc', 'o': 3})
+        response = self.client.get('/test_admin/%s/admin_views/article/' % self.urlbit, {'o': '-3'})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
             response.content.index('Newest content') < response.content.index('Middle content') and
@@ -227,12 +231,123 @@ class AdminViewBasicTest(TestCase):
         Ensure we can sort on a list_display field that is a ModelAdmin method
         (colunn 4 is 'modeladmin_year' in ArticleAdmin)
         """
-        response = self.client.get('/test_admin/%s/admin_views/article/' % self.urlbit, {'ot': 'asc', 'o': 4})
+        response = self.client.get('/test_admin/%s/admin_views/article/' % self.urlbit, {'o': '4'})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
             response.content.index('Oldest content') < response.content.index('Middle content') and
             response.content.index('Middle content') < response.content.index('Newest content'),
             "Results of sorting on ModelAdmin method are out of order."
+        )
+
+    def testChangeListSortingMultiple(self):
+        p1 = Person.objects.create(name="Chris", gender=1, alive=True)
+        p2 = Person.objects.create(name="Chris", gender=2, alive=True)
+        p3 = Person.objects.create(name="Bob", gender=1, alive=True)
+        link = '<a href="%s/'
+
+        # Sort by name, gender
+        # This hard-codes the URL because it'll fail if it runs against the
+        # 'admin2' custom admin (which doesn't have the Person model).
+        response = self.client.get('/test_admin/admin/admin_views/person/', {'o': '1.2'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % p3.id) < response.content.index(link % p1.id) and
+            response.content.index(link % p1.id) < response.content.index(link % p2.id)
+        )
+
+        # Sort by gender descending, name
+        response = self.client.get('/test_admin/admin/admin_views/person/', {'o': '-2.1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % p2.id) < response.content.index(link % p3.id) and
+            response.content.index(link % p3.id) < response.content.index(link % p1.id)
+        )
+
+    def testChangeListSortingPreserveQuerySetOrdering(self):
+        # If no ordering on ModelAdmin, or query string, the underlying order of
+        # the queryset should not be changed.
+
+        p1 = Person.objects.create(name="Amy", gender=1, alive=True, age=80)
+        p2 = Person.objects.create(name="Bob", gender=1, alive=True, age=70)
+        p3 = Person.objects.create(name="Chris", gender=2, alive=False, age=60)
+        link = '<a href="%s/'
+
+        # This hard-codes the URL because it'll fail if it runs against the
+        # 'admin2' custom admin (which doesn't have the Person model).
+        response = self.client.get('/test_admin/admin/admin_views/person/', {})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % p3.id) < response.content.index(link % p2.id) and
+            response.content.index(link % p2.id) < response.content.index(link % p1.id)
+        )
+
+    def testChangeListSortingModelMeta(self):
+        # Test ordering on Model Meta is respected
+
+        l1 = Language.objects.create(iso='ur', name='Urdu')
+        l2 = Language.objects.create(iso='ar', name='Arabic')
+        link = '<a href="%s/'
+
+        response = self.client.get('/test_admin/admin/admin_views/language/', {})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % l2.pk) < response.content.index(link % l1.pk)
+        )
+
+        # Test we can override with query string
+        response = self.client.get('/test_admin/admin/admin_views/language/', {'o':'-1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % l1.pk) < response.content.index(link % l2.pk)
+        )
+
+    def testChangeListSortingModelAdmin(self):
+        # Test ordering on Model Admin is respected, and overrides Model Meta
+        dt = datetime.datetime.now()
+        p1 = Podcast.objects.create(name="A", release_date=dt)
+        p2 = Podcast.objects.create(name="B", release_date=dt - datetime.timedelta(10))
+
+        link = '<a href="%s/'
+        response = self.client.get('/test_admin/admin/admin_views/podcast/', {})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % p1.pk) < response.content.index(link % p2.pk)
+        )
+
+    def testMultipleSortSameField(self):
+        # Check that we get the columns we expect if we have two columns
+        # that correspond to the same ordering field
+        dt = datetime.datetime.now()
+        p1 = Podcast.objects.create(name="A", release_date=dt)
+        p2 = Podcast.objects.create(name="B", release_date=dt - datetime.timedelta(10))
+
+        link = '<a href="%s/'
+        response = self.client.get('/test_admin/admin/admin_views/podcast/', {})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.content.index(link % p1.pk) < response.content.index(link % p2.pk)
+        )
+
+        p1 = ComplexSortedPerson.objects.create(name="Bob", age=10)
+        p2 = ComplexSortedPerson.objects.create(name="Amy", age=20)
+        link = '<a href="%s/'
+
+        response = self.client.get('/test_admin/admin/admin_views/complexsortedperson/', {})
+        self.assertEqual(response.status_code, 200)
+        # Should have 5 columns (including action checkbox col)
+        self.assertContains(response, '<th scope="col"', count=5)
+
+        self.assertContains(response, 'Name')
+        self.assertContains(response, 'Colored name')
+
+        # Check order
+        self.assertTrue(
+            response.content.index('Name') < response.content.index('Colored name')
+        )
+
+        # Check sorting - should be by name
+        self.assertTrue(
+            response.content.index(link % p2.id) < response.content.index(link % p1.id)
         )
 
     def testLimitedFilter(self):
@@ -358,42 +473,31 @@ class AdminViewBasicTest(TestCase):
         if the default language is non-English but the selected language
         is English. See #13388 and #3594 for more details.
         """
-        try:
-            settings.LANGUAGE_CODE = 'fr'
-            activate('en-us')
-            response = self.client.get('/test_admin/admin/jsi18n/')
-            self.assertNotContains(response, 'Choisir une heure')
-        finally:
-            deactivate()
+        with self.settings(LANGUAGE_CODE='fr'):
+            with translation.override('en-us'):
+                response = self.client.get('/test_admin/admin/jsi18n/')
+                self.assertNotContains(response, 'Choisir une heure')
 
     def testI18NLanguageNonEnglishFallback(self):
         """
         Makes sure that the fallback language is still working properly
         in cases where the selected language cannot be found.
         """
-        try:
-            settings.LANGUAGE_CODE = 'fr'
-            activate('none')
-            response = self.client.get('/test_admin/admin/jsi18n/')
-            self.assertContains(response, 'Choisir une heure')
-        finally:
-            deactivate()
+        with self.settings(LANGUAGE_CODE='fr'):
+            with translation.override('none'):
+                response = self.client.get('/test_admin/admin/jsi18n/')
+                self.assertContains(response, 'Choisir une heure')
 
     def testL10NDeactivated(self):
         """
         Check if L10N is deactivated, the Javascript i18n view doesn't
         return localized date/time formats. Refs #14824.
         """
-        try:
-            settings.LANGUAGE_CODE = 'ru'
-            settings.USE_L10N = False
-            activate('ru')
-            response = self.client.get('/test_admin/admin/jsi18n/')
-            self.assertNotContains(response, '%d.%m.%Y %H:%M:%S')
-            self.assertContains(response, '%Y-%m-%d %H:%M:%S')
-        finally:
-            deactivate()
-
+        with self.settings(LANGUAGE_CODE='ru', USE_L10N=False):
+            with translation.override('none'):
+                response = self.client.get('/test_admin/admin/jsi18n/')
+                self.assertNotContains(response, '%d.%m.%Y %H:%M:%S')
+                self.assertContains(response, '%Y-%m-%d %H:%M:%S')
 
     def test_disallowed_filtering(self):
         self.assertRaises(SuspiciousOperation,
@@ -488,40 +592,47 @@ class CustomModelAdminTest(AdminViewBasicTest):
 
     def testCustomAdminSiteLoginForm(self):
         self.client.logout()
-        request = self.client.get('/test_admin/admin2/')
-        self.assertEqual(request.status_code, 200)
+        response = self.client.get('/test_admin/admin2/')
+        self.assertIsInstance(response, TemplateResponse)
+        self.assertEqual(response.status_code, 200)
         login = self.client.post('/test_admin/admin2/', {
             REDIRECT_FIELD_NAME: '/test_admin/admin2/',
             LOGIN_FORM_KEY: 1,
             'username': 'customform',
             'password': 'secret',
         })
+        self.assertIsInstance(login, TemplateResponse)
         self.assertEqual(login.status_code, 200)
         self.assertContains(login, 'custom form error')
 
     def testCustomAdminSiteLoginTemplate(self):
         self.client.logout()
         request = self.client.get('/test_admin/admin2/')
+        self.assertIsInstance(request, TemplateResponse)
         self.assertTemplateUsed(request, 'custom_admin/login.html')
         self.assertTrue('Hello from a custom login template' in request.content)
 
     def testCustomAdminSiteLogoutTemplate(self):
         request = self.client.get('/test_admin/admin2/logout/')
+        self.assertIsInstance(request, TemplateResponse)
         self.assertTemplateUsed(request, 'custom_admin/logout.html')
         self.assertTrue('Hello from a custom logout template' in request.content)
 
     def testCustomAdminSiteIndexViewAndTemplate(self):
         request = self.client.get('/test_admin/admin2/')
+        self.assertIsInstance(request, TemplateResponse)
         self.assertTemplateUsed(request, 'custom_admin/index.html')
         self.assertTrue('Hello from a custom index template *bar*' in request.content)
 
     def testCustomAdminSitePasswordChangeTemplate(self):
         request = self.client.get('/test_admin/admin2/password_change/')
+        self.assertIsInstance(request, TemplateResponse)
         self.assertTemplateUsed(request, 'custom_admin/password_change_form.html')
         self.assertTrue('Hello from a custom password change form template' in request.content)
 
     def testCustomAdminSitePasswordChangeDoneTemplate(self):
         request = self.client.get('/test_admin/admin2/password_change/done/')
+        self.assertIsInstance(request, TemplateResponse)
         self.assertTemplateUsed(request, 'custom_admin/password_change_done.html')
         self.assertTrue('Hello from a custom password change done template' in request.content)
 
@@ -1874,7 +1985,8 @@ class AdminActionsTest(TestCase):
             'post': 'yes',
         }
         confirmation = self.client.post('/test_admin/admin/admin_views/subscriber/', action_data)
-        self.assertContains(confirmation, "Are you sure you want to delete the selected subscribers")
+        self.assertIsInstance(confirmation, TemplateResponse)
+        self.assertContains(confirmation, "Are you sure you want to delete the selected subscribers?")
         self.assertTrue(confirmation.content.count(ACTION_CHECKBOX_NAME) == 2)
         response = self.client.post('/test_admin/admin/admin_views/subscriber/', delete_confirmation_data)
         self.assertEqual(Subscriber.objects.count(), 0)
@@ -1956,9 +2068,23 @@ class AdminActionsTest(TestCase):
             'action' : 'external_mail',
             'index': 0,
         }
-        url = '/test_admin/admin/admin_views/externalsubscriber/?ot=asc&o=1'
+        url = '/test_admin/admin/admin_views/externalsubscriber/?o=1'
         response = self.client.post(url, action_data)
         self.assertRedirects(response, url)
+
+    def test_actions_ordering(self):
+        """
+        Ensure that actions are ordered as expected.
+        Refs #15964.
+        """
+        response = self.client.get('/test_admin/admin/admin_views/externalsubscriber/')
+        self.assertTrue('''<label>Action: <select name="action">
+<option value="" selected="selected">---------</option>
+<option value="delete_selected">Delete selected external subscribers</option>
+<option value="redirect_to">Redirect to (Awesome action)</option>
+<option value="external_mail">External mail (Another awesome action)</option>
+</select>'''in response.content,
+        )
 
     def test_model_without_action(self):
         "Tests a ModelAdmin without any action"
@@ -2578,6 +2704,30 @@ class NeverCacheTests(TestCase):
         response = self.client.get('/test_admin/admin/jsi18n/')
         self.assertEqual(get_max_age(response), None)
 
+
+class PrePopulatedTest(TestCase):
+    fixtures = ['admin-views-users.xml']
+
+    def setUp(self):
+        self.client.login(username='super', password='secret')
+
+    def tearDown(self):
+        self.client.logout()
+
+    def test_prepopulated_on(self):
+        response = self.client.get('/test_admin/admin/admin_views/prepopulatedpost/add/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "id: '#id_slug',")
+        self.assertContains(response, "field['dependency_ids'].push('#id_title');")
+        self.assertContains(response, "id: '#id_prepopulatedsubpost_set-0-subslug',")
+
+    def test_prepopulated_off(self):
+        response = self.client.get('/test_admin/admin/admin_views/prepopulatedpost/1/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A Long Title")
+        self.assertNotContains(response, "id: '#id_slug'")
+        self.assertNotContains(response, "field['dependency_ids'].push('#id_title');")
+        self.assertNotContains(response, "id: '#id_prepopulatedsubpost_set-0-subslug',")
 
 class ReadonlyTest(TestCase):
     fixtures = ['admin-views-users.xml']
