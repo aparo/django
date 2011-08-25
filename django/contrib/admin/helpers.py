@@ -1,7 +1,7 @@
 from django import forms
-from django.conf import settings
 from django.contrib.admin.util import (flatten_fieldsets, lookup_field,
     display_for_field, label_for_field, help_text_for_field)
+from django.contrib.admin.templatetags.admin_static import static
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.fields.related import ManyToManyRel
@@ -75,8 +75,8 @@ class Fieldset(object):
 
     def _media(self):
         if 'collapse' in self.classes:
-            js = ['js/jquery.min.js', 'js/jquery.init.js', 'js/collapse.min.js']
-            return forms.Media(js=['%s%s' % (settings.ADMIN_MEDIA_PREFIX, url) for url in js])
+            js = ['jquery.min.js', 'jquery.init.js', 'collapse.min.js']
+            return forms.Media(js=[static('admin/js/%s' % url) for url in js])
         return forms.Media()
     media = property(_media)
 

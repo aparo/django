@@ -5,6 +5,7 @@
 
 import hashlib
 import os
+import re
 import tempfile
 import time
 import warnings
@@ -12,14 +13,14 @@ import warnings
 from django.conf import settings
 from django.core import management
 from django.core.cache import get_cache, DEFAULT_CACHE_ALIAS
-from django.core.cache.backends.base import CacheKeyWarning
+from django.core.cache.backends.base import CacheKeyWarning, InvalidCacheBackendError
 from django.http import HttpResponse, HttpRequest, QueryDict
 from django.middleware.cache import FetchFromCacheMiddleware, UpdateCacheMiddleware, CacheMiddleware
 from django.test import RequestFactory
 from django.test.utils import get_warnings_state, restore_warnings_state
 from django.utils import translation
 from django.utils import unittest
-from django.utils.cache import patch_vary_headers, get_cache_key, learn_cache_key
+from django.utils.cache import patch_vary_headers, get_cache_key, learn_cache_key, patch_cache_control
 from django.views.decorators.cache import cache_page
 
 from regressiontests.cache.models import Poll, expensive_calculation
@@ -220,7 +221,7 @@ class BaseCacheTests(object):
         self.assertEqual(self.cache.has_key("goodbye1"), False)
 
     def test_in(self):
-        # The in operator can be used to inspet cache contents
+        # The in operator can be used to inspect cache contents
         self.cache.set("hello2", "goodbye2")
         self.assertEqual("hello2" in self.cache, True)
         self.assertEqual("goodbye2" in self.cache, False)
@@ -338,7 +339,7 @@ class BaseCacheTests(object):
             self.assertEqual(self.cache.get(key), value)
 
     def test_binary_string(self):
-        # Binary strings should be cachable
+        # Binary strings should be cacheable
         from zlib import compress, decompress
         value = 'value_to_be_compressed'
         compressed_value = compress(value)
@@ -407,6 +408,11 @@ class BaseCacheTests(object):
         self.cache.set_many({'key3': 'sausage', 'key4': 'lobster bisque'}, 60*60*24*30 + 1)
         self.assertEqual(self.cache.get('key3'), 'sausage')
         self.assertEqual(self.cache.get('key4'), 'lobster bisque')
+
+    def test_float_timeout(self):
+        # Make sure a timeout given as a float doesn't crash anything.
+        self.cache.set("key1", "spam", 100.2)
+        self.assertEqual(self.cache.get("key1"), "spam")
 
     def perform_cull_test(self, initial_count, final_count):
         """This is implemented as a utility method, because only some of the backends
@@ -757,6 +763,7 @@ class DBCacheTests(unittest.TestCase, BaseCacheTests):
         self.cache = get_cache('db://%s?max_entries=30&cull_frequency=0' % self._table_name)
         self.perform_cull_test(50, 18)
 
+
 class LocMemCacheTests(unittest.TestCase, BaseCacheTests):
     backend_name = 'django.core.cache.backends.locmem.LocMemCache'
 
@@ -902,6 +909,23 @@ class CustomCacheKeyValidationTests(unittest.TestCase):
         cache.set(key, val)
         self.assertEqual(cache.get(key), val)
 
+
+class GetCacheTests(unittest.TestCase):
+
+    def test_simple(self):
+        cache = get_cache('locmem://')
+        from django.core.cache.backends.locmem import LocMemCache
+        self.assertTrue(isinstance(cache, LocMemCache))
+
+        from django.core.cache import cache
+        self.assertTrue(isinstance(cache, get_cache('default').__class__))
+
+        cache = get_cache(
+            'django.core.cache.backends.dummy.DummyCache', **{'TIMEOUT': 120})
+        self.assertEqual(cache.default_timeout, 120)
+
+        self.assertRaises(InvalidCacheBackendError, get_cache, 'does_not_exist')
+
 class CacheUtils(unittest.TestCase):
     """TestCase for django.utils.cache functions."""
 
@@ -979,6 +1003,31 @@ class CacheUtils(unittest.TestCase):
         # Make sure that the Vary header is added to the key hash
         learn_cache_key(request, response)
         self.assertEqual(get_cache_key(request), 'views.decorators.cache.cache_page.settingsprefix.HEAD.a8c87a3d8c44853d7f79474f7ffe4ad5.d41d8cd98f00b204e9800998ecf8427e')
+
+    def test_patch_cache_control(self):
+        tests = (
+            # Initial Cache-Control, kwargs to patch_cache_control, expected Cache-Control parts
+            (None, {'private' : True}, set(['private'])),
+
+            # Test whether private/public attributes are mutually exclusive
+            ('private', {'private' : True}, set(['private'])),
+            ('private', {'public' : True}, set(['public'])),
+            ('public', {'public' : True}, set(['public'])),
+            ('public', {'private' : True}, set(['private'])),
+            ('must-revalidate,max-age=60,private', {'public' : True}, set(['must-revalidate', 'max-age=60', 'public'])),
+            ('must-revalidate,max-age=60,public', {'private' : True}, set(['must-revalidate', 'max-age=60', 'private'])),
+            ('must-revalidate,max-age=60', {'public' : True}, set(['must-revalidate', 'max-age=60', 'public'])),
+        )
+
+        cc_delim_re = re.compile(r'\s*,\s*')
+
+        for initial_cc, newheaders, expected_cc in tests:
+            response = HttpResponse()
+            if initial_cc is not None:
+                response['Cache-Control'] = initial_cc
+            patch_cache_control(response, **newheaders)
+            parts = set(cc_delim_re.split(response['Cache-Control']))
+            self.assertEqual(parts, expected_cc)
 
 class PrefixedCacheUtils(CacheUtils):
     def setUp(self):

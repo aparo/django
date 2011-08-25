@@ -1,8 +1,9 @@
 import sys
 
 from django import forms
-from django.http import HttpResponse, HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import get_resolver
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response, render
 from django.template import Context, RequestContext, TemplateDoesNotExist
 from django.views.debug import technical_500_response, SafeExceptionReporterFilter
@@ -52,6 +53,9 @@ def raises(request):
 def raises404(request):
     resolver = get_resolver(None)
     resolver.resolve('')
+
+def raises403(request):
+    raise PermissionDenied
 
 def redirect(request):
     """
@@ -134,6 +138,16 @@ def raises_template_does_not_exist(request):
 
 def send_log(request, exc_info):
     logger = getLogger('django.request')
+    # The default logging config has a logging filter to ensure admin emails are
+    # only sent with DEBUG=False, but since someone might choose to remove that
+    # filter, we still want to be able to test the behavior of error emails
+    # with DEBUG=True. So we need to remove the filter temporarily.
+    admin_email_handler = [
+        h for h in logger.handlers
+        if h.__class__.__name__ == "AdminEmailHandler"
+        ][0]
+    orig_filters = admin_email_handler.filters
+    admin_email_handler.filters = []
     logger.error('Internal Server Error: %s' % request.path,
         exc_info=exc_info,
         extra={
@@ -141,6 +155,7 @@ def send_log(request, exc_info):
             'request': request
         }
     )
+    admin_email_handler.filters = orig_filters
 
 def non_sensitive_view(request):
     # Do not just use plain strings for the variables' values in the code

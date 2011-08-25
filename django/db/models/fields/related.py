@@ -9,8 +9,7 @@ from django.db.models.query import QuerySet
 from django.db.models.query_utils import QueryWrapper
 from django.db.models.deletion import CASCADE
 from django.utils.encoding import smart_unicode
-from django.utils.translation import (ugettext_lazy as _, string_concat,
-    ungettext, ugettext)
+from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.functional import curry
 from django.core import exceptions
 from django import forms
@@ -907,6 +906,10 @@ class ForeignKey(RelatedField, Field):
 
     def formfield(self, **kwargs):
         db = kwargs.pop('using', None)
+        if isinstance(self.rel.to, basestring):
+            raise ValueError("Cannot create form field for %r yet, because "
+                             "its related model %r has not been loaded yet" %
+                             (self.name, self.rel.to))
         defaults = {
             'form_class': forms.ModelChoiceField,
             'queryset': self.rel.to._default_manager.using(db).complex_filter(self.rel.limit_choices_to),
@@ -923,6 +926,11 @@ class ForeignKey(RelatedField, Field):
         # If the database needs similar types for key fields however, the only
         # thing we can do is making AutoField an IntegerField.
         rel_field = self.rel.get_related_field()
+#        if (isinstance(rel_field, AutoField) or
+#                (not connection.features.related_fields_match_type and
+#                isinstance(rel_field, (PositiveIntegerField,
+#                                       PositiveSmallIntegerField)))):
+#            return IntegerField().db_type(connection=connection)
         return rel_field.related_db_type(connection=connections[router.db_for_read(rel_field.model)])
 
 class OneToOneField(ForeignKey):
@@ -1000,6 +1008,10 @@ class ManyToManyField(RelatedField, Field):
             assert not to._meta.abstract, "%s cannot define a relation with abstract class %s" % (self.__class__.__name__, to._meta.object_name)
         except AttributeError: # to._meta doesn't exist, so it must be RECURSIVE_RELATIONSHIP_CONSTANT
             assert isinstance(to, basestring), "%s(%r) is invalid. First parameter to ManyToManyField must be either a model, a model name, or the string %r" % (self.__class__.__name__, to, RECURSIVE_RELATIONSHIP_CONSTANT)
+            # Python 2.6 and earlier require dictionary keys to be of str type,
+            # not unicode and class names must be ASCII (in Python 2.x), so we
+            # forcibly coerce it here (breaks early if there's a problem).
+            to = str(to)
 
         kwargs['verbose_name'] = kwargs.get('verbose_name', None)
         kwargs['rel'] = ManyToManyRel(to,

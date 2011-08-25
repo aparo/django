@@ -13,7 +13,7 @@ from django.template import (TemplateDoesNotExist, TemplateSyntaxError,
 import django.template.context
 from django.test import Client, TestCase
 from django.test.client import encode_file, RequestFactory
-from django.test.utils import ContextList
+from django.test.utils import ContextList, override_settings
 
 
 class AssertContainsTests(TestCase):
@@ -518,6 +518,19 @@ class SessionEngineTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['user'].username, 'testclient')
 
+
+class NoSessionsAppInstalled(SessionEngineTests):
+    """#7836 - Test client can exercise sessions even when 'django.contrib.sessions' isn't installed."""
+
+    # Remove the 'session' contrib app from INSTALLED_APPS
+    @override_settings(INSTALLED_APPS=tuple(filter(lambda a: a!='django.contrib.sessions', settings.INSTALLED_APPS)))
+    def test_session(self):
+        # This request sets a session variable.
+        response = self.client.get('/test_client_regress/set_session/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.session['session_var'], 'YES')
+
+
 class URLEscapingTests(TestCase):
     def test_simple_argument_get(self):
         "Get a view that has a simple string argument"
@@ -757,7 +770,9 @@ class RequestMethodStringDataTests(TestCase):
 
 class QueryStringTests(TestCase):
     def test_get_like_requests(self):
-        for method_name in ('get','head','options','put','delete'):
+        # See: https://code.djangoproject.com/ticket/10571.
+        # Removed 'put' and 'delete' here as they are 'GET-like requests'
+        for method_name in ('get','head','options'):
             # A GET-like request can pass a query string as data
             method = getattr(self.client, method_name)
             response = method("/test_client_regress/request_data/", data={'foo':'whiz'})
@@ -814,12 +829,18 @@ class UnicodePayloadTests(TestCase):
         response = self.client.post("/test_client_regress/parse_unicode_json/", json,
                                     content_type="application/json")
         self.assertEqual(response.content, json)
+        response = self.client.put("/test_client_regress/parse_unicode_json/", json,
+                                    content_type="application/json")
+        self.assertEqual(response.content, json)
 
     def test_unicode_payload_utf8(self):
         "A non-ASCII unicode data encoded as UTF-8 can be POSTed"
         # Regression test for #10571
         json = u'{"dog": "собака"}'
         response = self.client.post("/test_client_regress/parse_unicode_json/", json,
+                                    content_type="application/json; charset=utf-8")
+        self.assertEqual(response.content, json.encode('utf-8'))
+        response = self.client.put("/test_client_regress/parse_unicode_json/", json,
                                     content_type="application/json; charset=utf-8")
         self.assertEqual(response.content, json.encode('utf-8'))
 
@@ -830,12 +851,18 @@ class UnicodePayloadTests(TestCase):
         response = self.client.post("/test_client_regress/parse_unicode_json/", json,
                                     content_type="application/json; charset=utf-16")
         self.assertEqual(response.content, json.encode('utf-16'))
+        response = self.client.put("/test_client_regress/parse_unicode_json/", json,
+                                    content_type="application/json; charset=utf-16")
+        self.assertEqual(response.content, json.encode('utf-16'))
 
     def test_unicode_payload_non_utf(self):
         "A non-ASCII unicode data as a non-UTF based encoding can be POSTed"
         #Regression test for #10571
         json = u'{"dog": "собака"}'
         response = self.client.post("/test_client_regress/parse_unicode_json/", json,
+                                    content_type="application/json; charset=koi8-r")
+        self.assertEqual(response.content, json.encode('koi8-r'))
+        response = self.client.put("/test_client_regress/parse_unicode_json/", json,
                                     content_type="application/json; charset=koi8-r")
         self.assertEqual(response.content, json.encode('koi8-r'))
 
@@ -900,14 +927,44 @@ class ResponseTemplateDeprecationTests(TestCase):
         response = self.client.get("/test_client_regress/request_methods/")
         self.assertEqual(response.template, None)
 
-class RawPostDataTest(TestCase):
-    "Access to request.raw_post_data from the test client."
-    def test_raw_post_data(self):
-        # Refs #14753
-        try:
-            response = self.client.get("/test_client_regress/raw_post_data/")
-        except AssertionError:
-            self.fail("Accessing request.raw_post_data from a view fetched with GET by the test client shouldn't fail.")
+
+class ReadLimitedStreamTest(TestCase):
+    """
+    Tests that ensure that HttpRequest.raw_post_data, HttpRequest.read() and
+    HttpRequest.read(BUFFER) have proper LimitedStream behaviour.
+
+    Refs #14753, #15785
+    """
+    def test_raw_post_data_from_empty_request(self):
+        """HttpRequest.raw_post_data on a test client GET request should return
+        the empty string."""
+        self.assertEquals(self.client.get("/test_client_regress/raw_post_data/").content, '')
+
+    def test_read_from_empty_request(self):
+        """HttpRequest.read() on a test client GET request should return the
+        empty string."""
+        self.assertEquals(self.client.get("/test_client_regress/read_all/").content, '')
+
+    def test_read_numbytes_from_empty_request(self):
+        """HttpRequest.read(LARGE_BUFFER) on a test client GET request should
+        return the empty string."""
+        self.assertEquals(self.client.get("/test_client_regress/read_buffer/").content, '')
+
+    def test_read_from_nonempty_request(self):
+        """HttpRequest.read() on a test client PUT request with some payload
+        should return that payload."""
+        payload = 'foobar'
+        self.assertEquals(self.client.put("/test_client_regress/read_all/",
+                                          data=payload,
+                                          content_type='text/plain').content, payload)
+
+    def test_read_numbytes_from_nonempty_request(self):
+        """HttpRequest.read(LARGE_BUFFER) on a test client PUT request with
+        some payload should return that payload."""
+        payload = 'foobar'
+        self.assertEquals(self.client.put("/test_client_regress/read_buffer/",
+                                          data=payload,
+                                          content_type='text/plain').content, payload)
 
 
 class RequestFactoryStateTest(TestCase):

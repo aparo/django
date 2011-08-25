@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # Unit and doctests for specific database backends.
+from __future__ import with_statement
 import datetime
 
 from django.conf import settings
 from django.core.management.color import no_style
-from django.db import backend, connection, connections, DEFAULT_DB_ALIAS, IntegrityError
+from django.db import backend, connection, connections, DEFAULT_DB_ALIAS, IntegrityError, transaction
 from django.db.backends.signals import connection_created
 from django.db.backends.postgresql_psycopg2 import version as pg_version
 from django.test import TestCase, skipUnlessDBFeature, TransactionTestCase
@@ -196,12 +197,34 @@ class PostgresVersionTest(TestCase):
         self.assertEqual(pg_version._parse_version(version_string), version)
 
     def test_parsing(self):
-        self.assert_parses("PostgreSQL 8.3 beta4", (8, 3, None))
-        self.assert_parses("PostgreSQL 8.3", (8, 3, None))
-        self.assert_parses("EnterpriseDB 8.3", (8, 3, None))
-        self.assert_parses("PostgreSQL 8.3.6", (8, 3, 6))
-        self.assert_parses("PostgreSQL 8.4beta1", (8, 4, None))
-        self.assert_parses("PostgreSQL 8.3.1 on i386-apple-darwin9.2.2, compiled by GCC i686-apple-darwin9-gcc-4.0.1 (GCC) 4.0.1 (Apple Inc. build 5478)", (8, 3, 1))
+        """Test PostgreSQL version parsing from `SELECT version()` output"""
+        self.assert_parses("PostgreSQL 8.3 beta4", 80300)
+        self.assert_parses("PostgreSQL 8.3", 80300)
+        self.assert_parses("EnterpriseDB 8.3", 80300)
+        self.assert_parses("PostgreSQL 8.3.6", 80306)
+        self.assert_parses("PostgreSQL 8.4beta1", 80400)
+        self.assert_parses("PostgreSQL 8.3.1 on i386-apple-darwin9.2.2, compiled by GCC i686-apple-darwin9-gcc-4.0.1 (GCC) 4.0.1 (Apple Inc. build 5478)", 80301)
+
+    def test_version_detection(self):
+        """Test PostgreSQL version detection"""
+
+        # Helper mocks
+        class CursorMock(object):
+            "Very simple mock of DB-API cursor"
+            def execute(self, arg):
+                pass
+
+            def fetchone(self):
+                return ["PostgreSQL 8.3"]
+
+        class OlderConnectionMock(object):
+            "Mock of psycopg2 (< 2.0.12) connection"
+            def cursor(self):
+                return CursorMock()
+
+        # psycopg2 < 2.0.12 code path
+        conn = OlderConnectionMock()
+        self.assertEqual(pg_version.get_version(conn), 80300)
 
 # Unfortunately with sqlite3 the in-memory test database cannot be
 # closed, and so it cannot be re-opened during testing, and so we
@@ -306,7 +329,8 @@ class FkConstraintsTests(TransactionTestCase):
         try:
             a.save()
         except IntegrityError:
-            pass
+            return
+        self.skipTest("This backend does not support integrity checks.")
 
     def test_integrity_checks_on_update(self):
         """
@@ -321,4 +345,60 @@ class FkConstraintsTests(TransactionTestCase):
         try:
             a.save()
         except IntegrityError:
-            pass
+            return
+        self.skipTest("This backend does not support integrity checks.")
+
+    def test_disable_constraint_checks_manually(self):
+        """
+        When constraint checks are disabled, should be able to write bad data without IntegrityErrors.
+        """
+        with transaction.commit_manually():
+            # Create an Article.
+            models.Article.objects.create(headline="Test article", pub_date=datetime.datetime(2010, 9, 4), reporter=self.r)
+            # Retrive it from the DB
+            a = models.Article.objects.get(headline="Test article")
+            a.reporter_id = 30
+            try:
+                connection.disable_constraint_checking()
+                a.save()
+                connection.enable_constraint_checking()
+            except IntegrityError:
+                self.fail("IntegrityError should not have occurred.")
+            finally:
+                transaction.rollback()
+
+    def test_disable_constraint_checks_context_manager(self):
+        """
+        When constraint checks are disabled (using context manager), should be able to write bad data without IntegrityErrors.
+        """
+        with transaction.commit_manually():
+            # Create an Article.
+            models.Article.objects.create(headline="Test article", pub_date=datetime.datetime(2010, 9, 4), reporter=self.r)
+            # Retrive it from the DB
+            a = models.Article.objects.get(headline="Test article")
+            a.reporter_id = 30
+            try:
+                with connection.constraint_checks_disabled():
+                    a.save()
+            except IntegrityError:
+                self.fail("IntegrityError should not have occurred.")
+            finally:
+                transaction.rollback()
+
+    def test_check_constraints(self):
+        """
+        Constraint checks should raise an IntegrityError when bad data is in the DB.
+        """
+        with transaction.commit_manually():
+            # Create an Article.
+            models.Article.objects.create(headline="Test article", pub_date=datetime.datetime(2010, 9, 4), reporter=self.r)
+            # Retrive it from the DB
+            a = models.Article.objects.get(headline="Test article")
+            a.reporter_id = 30
+            try:
+                with connection.constraint_checks_disabled():
+                    a.save()
+                    with self.assertRaises(IntegrityError):
+                        connection.check_constraints()
+            finally:
+                transaction.rollback()

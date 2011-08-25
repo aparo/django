@@ -68,9 +68,9 @@ Basic usage
 
    .. code-block:: html+django
 
-       <img src="{{ STATIC_URL }}images/hi.jpg />
+       <img src="{{ STATIC_URL }}images/hi.jpg" />
 
-   See :ref:`staticfiles-in-templates` for more details, including an
+   See :ref:`staticfiles-in-templates` for more details, **including** an
    alternate method using a template tag.
 
 Deploying static files in a nutshell
@@ -143,7 +143,7 @@ A far better way is to use the value of the :setting:`STATIC_URL` setting
 directly in your templates. This means that a switch of static files servers
 only requires changing that single value. Much better!
 
-``staticfiles`` includes two built-in ways of getting at this setting in your
+Django includes multiple built-in ways of using this setting in your
 templates: a context processor and a template tag.
 
 With a context processor
@@ -167,7 +167,7 @@ Once that's done, you can refer to :setting:`STATIC_URL` in your templates:
 
 .. code-block:: html+django
 
-     <img src="{{ STATIC_URL }}images/hi.jpg />
+     <img src="{{ STATIC_URL }}images/hi.jpg" />
 
 If ``{{ STATIC_URL }}`` isn't working in your template, you're probably not
 using :class:`~django.template.RequestContext` when rendering the template.
@@ -180,29 +180,41 @@ but in views written by hand you'll need to explicitly use ``RequestContext``
 To see how that works, and to read more details, check out
 :ref:`subclassing-context-requestcontext`.
 
+Another option is the :ttag:`get_static_prefix` template tag that is part of
+Django's core.
+
 With a template tag
 -------------------
 
-The second option is the :ttag:`get_static_prefix` template tag. You can
-use this if you're not using :class:`~django.template.RequestContext`, or if you
-need more control over exactly where and how :setting:`STATIC_URL` is
-injected into the template. Here's an example:
+The more powerful tool is the :ttag:`static<staticfiles-static>` template
+tag. It builds the URL for the given relative path by using the configured
+:setting:`STATICFILES_STORAGE` storage.
 
 .. code-block:: html+django
 
-    {% load static %}
-    <img src="{% get_static_prefix %}images/hi.jpg" />
+    {% load staticfiles %}
+    <img src="{% static "images/hi.jpg" %}" />
 
-There's also a second form you can use to avoid extra processing if you need the
-value multiple times:
+It is also able to consume standard context variables, e.g. assuming a
+``user_stylesheet`` variable is passed to the template:
 
 .. code-block:: html+django
 
-    {% load static %}
-    {% get_static_prefix as STATIC_PREFIX %}
+    {% load staticfiles %}
+    <link rel="stylesheet" href="{% static user_stylesheet %}" type="text/css" media="screen" />
 
-    <img src="{{ STATIC_PREFIX }}images/hi.jpg" />
-    <img src="{{ STATIC_PREFIX }}images/hi2.jpg" />
+.. note::
+
+    There is also a template tag named :ttag:`static` in Django's core set
+    of :ref:`built in template tags<ref-templates-builtins-tags>` which has
+    the same argument signature but only uses `urlparse.urljoin()`_ with the
+    :setting:`STATIC_URL` setting and the given path. This has the
+    disadvantage of not being able to easily switch the storage backend
+    without changing the templates, so in doubt use the ``staticfiles``
+    :ttag:`static<staticfiles-static>`
+    template tag.
+
+.. _`urlparse.urljoin()`: http://docs.python.org/library/urlparse.html#urlparse.urljoin
 
 .. _staticfiles-development:
 
@@ -337,7 +349,7 @@ serving your site, the basic outline gets modified to look something like:
     * On the server, run :djadmin:`collectstatic` to copy all the static files
       into :setting:`STATIC_ROOT`.
     * Point your web server at :setting:`STATIC_ROOT`. For example, here's
-      :ref:`how to do this under Apache and mod_wsgi <serving-media-files>`.
+      :ref:`how to do this under Apache and mod_wsgi <serving-files>`.
 
 You'll probably want to automate this process, especially if you've got
 multiple web servers. There's any number of ways to do this automation, but

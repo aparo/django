@@ -2,10 +2,9 @@
 Unit tests for reverse URL lookups.
 """
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse, resolve, NoReverseMatch,\
-                                     Resolver404, ResolverMatch,\
-                                     RegexURLResolver, RegexURLPattern
+from django.core.exceptions import ImproperlyConfigured, ViewDoesNotExist
+from django.core.urlresolvers import (reverse, resolve, NoReverseMatch,
+    Resolver404, ResolverMatch, RegexURLResolver, RegexURLPattern)
 from django.http import HttpResponseRedirect, HttpResponsePermanentRedirect
 from django.shortcuts import redirect
 from django.test import TestCase
@@ -139,21 +138,13 @@ test_data = (
 class NoURLPatternsTests(TestCase):
     urls = 'regressiontests.urlpatterns_reverse.no_urls'
 
-    def assertRaisesErrorWithMessage(self, error, message, callable,
-        *args, **kwargs):
-        self.assertRaises(error, callable, *args, **kwargs)
-        try:
-            callable(*args, **kwargs)
-        except error, e:
-            self.assertEqual(message, str(e))
-
     def test_no_urls_exception(self):
         """
         RegexURLResolver should raise an exception when no urlpatterns exist.
         """
         resolver = RegexURLResolver(r'^$', self.urls)
 
-        self.assertRaisesErrorWithMessage(ImproperlyConfigured,
+        self.assertRaisesMessage(ImproperlyConfigured,
             "The included urlconf regressiontests.urlpatterns_reverse.no_urls "\
             "doesn't have any patterns in it", getattr, resolver, 'url_patterns')
 
@@ -328,6 +319,13 @@ class NamespaceTests(TestCase):
         self.assertEqual('/ns-included1/normal/37/42/', reverse('inc-ns1:inc-normal-view', args=[37,42]))
         self.assertEqual('/ns-included1/normal/42/37/', reverse('inc-ns1:inc-normal-view', kwargs={'arg1':42, 'arg2':37}))
 
+    def test_namespace_pattern_with_variable_prefix(self):
+        "When using a include with namespaces when there is a regex variable in front of it"
+        self.assertEqual('/ns-outer/42/normal/', reverse('inc-outer:inc-normal-view', kwargs={'outer':42}))
+        self.assertEqual('/ns-outer/42/normal/', reverse('inc-outer:inc-normal-view', args=[42]))
+        self.assertEqual('/ns-outer/42/normal/37/4/', reverse('inc-outer:inc-normal-view', kwargs={'outer':42, 'arg1': 37, 'arg2': 4}))
+        self.assertEqual('/ns-outer/42/normal/37/4/', reverse('inc-outer:inc-normal-view', args=[42, 37, 4]))
+
     def test_multiple_namespace_pattern(self):
         "Namespaces can be embedded"
         self.assertEqual('/ns-included1/test3/inner/', reverse('inc-ns1:test-ns3:urlobject-view'))
@@ -470,3 +468,14 @@ class ResolverMatchTests(TestCase):
             self.assertEqual(match[0], func)
             self.assertEqual(match[1], args)
             self.assertEqual(match[2], kwargs)
+
+class ErroneousViewTests(TestCase):
+    urls = 'regressiontests.urlpatterns_reverse.erroneous_urls'
+
+    def test_erroneous_resolve(self):
+        self.assertRaises(ImportError, self.client.get, '/erroneous_inner/')
+        self.assertRaises(ImportError, self.client.get, '/erroneous_outer/')
+        self.assertRaises(ViewDoesNotExist, self.client.get, '/missing_inner/')
+        self.assertRaises(ViewDoesNotExist, self.client.get, '/missing_outer/')
+        self.assertRaises(ViewDoesNotExist, self.client.get, '/uncallable/')
+

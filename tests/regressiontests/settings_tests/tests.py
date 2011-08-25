@@ -1,10 +1,36 @@
 from __future__ import with_statement
-import os, sys
+import os
 from django.conf import settings, global_settings
-from django.test import TestCase, signals
+from django.test import TransactionTestCase, TestCase, signals
 from django.test.utils import override_settings
-from django.utils.unittest import skipIf
 
+
+# @override_settings(TEST='override')
+class FullyDecoratedTranTestCase(TransactionTestCase):
+
+    def test_override(self):
+        self.assertEqual(settings.TEST, 'override')
+
+    @override_settings(TEST='override2')
+    def test_method_override(self):
+        self.assertEqual(settings.TEST, 'override2')
+
+    def test_decorated_testcase_name(self):
+        self.assertEquals(FullyDecoratedTranTestCase.__name__, 'FullyDecoratedTranTestCase')
+
+FullyDecoratedTranTestCase = override_settings(TEST='override')(FullyDecoratedTranTestCase)
+
+# @override_settings(TEST='override')
+class FullyDecoratedTestCase(TestCase):
+
+    def test_override(self):
+        self.assertEqual(settings.TEST, 'override')
+
+    @override_settings(TEST='override2')
+    def test_method_override(self):
+        self.assertEqual(settings.TEST, 'override2')
+
+FullyDecoratedTestCase = override_settings(TEST='override')(FullyDecoratedTestCase)
 
 class SettingGetter(object):
     def __init__(self):
@@ -13,10 +39,11 @@ class SettingGetter(object):
 testvalue = None
 
 def signal_callback(sender, setting, value, **kwargs):
-    global testvalue
-    testvalue = value
+    if setting == 'TEST':
+        global testvalue
+        testvalue = value
 
-signals.setting_changed.connect(signal_callback, sender='TEST')
+signals.setting_changed.connect(signal_callback)
 
 class SettingsTests(TestCase):
 
@@ -183,7 +210,7 @@ class EnvironmentVariableTest(TestCase):
 
         # expect default
         setup_environ(global_settings)
-        self.assertEquals(
+        self.assertEqual(
             os.environ.get('DJANGO_SETTINGS_MODULE'),
             original_module
         )
@@ -192,7 +219,7 @@ class EnvironmentVariableTest(TestCase):
         os.environ['DJANGO_SETTINGS_MODULE'] = user_override
         setup_environ(global_settings)
 
-        self.assertEquals(
+        self.assertEqual(
             os.environ.get('DJANGO_SETTINGS_MODULE'),
             user_override
         )
@@ -201,7 +228,7 @@ class EnvironmentVariableTest(TestCase):
         os.environ['DJANGO_SETTINGS_MODULE'] = user_override
         setup_environ(global_settings, original_settings_path = orig_path)
 
-        self.assertEquals(
+        self.assertEqual(
             os.environ.get('DJANGO_SETTINGS_MODULE'),
             orig_path
         )

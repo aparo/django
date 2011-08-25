@@ -1,7 +1,6 @@
 from datetime import datetime
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.test import TestCase
 
 
 def validate_answer_to_universe(value):
@@ -81,4 +80,12 @@ class FlexibleDatePost(models.Model):
 
 class UniqueErrorsModel(models.Model):
     name = models.CharField(max_length=100, unique=True, error_messages={'unique': u'Custom unique name message.'})
-    number = models.IntegerField(unique=True, error_messages={'unique': u'Custom unique number message.'})
+    no = models.IntegerField(unique=True, error_messages={'unique': u'Custom unique number message.'})
+
+class GenericIPAddressTestModel(models.Model):
+    generic_ip = models.GenericIPAddressField(blank=True, null=True, unique=True)
+    v4_ip = models.GenericIPAddressField(blank=True, null=True, protocol="ipv4")
+    v6_ip = models.GenericIPAddressField(blank=True, null=True, protocol="ipv6")
+
+class GenericIPAddrUnpackUniqueTest(models.Model):
+    generic_v4unpack_ip = models.GenericIPAddressField(blank=True, unique=True, unpack_ipv4=True)

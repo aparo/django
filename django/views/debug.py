@@ -3,9 +3,9 @@ import os
 import re
 import sys
 import types
-from pprint import pformat
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.http import (HttpResponse, HttpResponseServerError,
     HttpResponseNotFound, HttpRequest, build_request_repr)
 from django.template import (Template, Context, TemplateDoesNotExist,
@@ -80,7 +80,7 @@ def get_exception_reporter_filter(request):
         try:
             default_exception_reporter_filter = getattr(mod, classname)()
         except AttributeError:
-            raise exceptions.ImproperlyConfigured('Default exception reporter filter module "%s" does not define a "%s" class' % (modname, classname))
+            raise ImproperlyConfigured('Default exception reporter filter module "%s" does not define a "%s" class' % (modname, classname))
     if request:
         return getattr(request, 'exception_reporter_filter', default_exception_reporter_filter)
     else:
@@ -446,7 +446,7 @@ TECHNICAL_500_TEMPLATE = """
     h2 span { font-size:80%; color:#666; font-weight:normal; }
     h3 { margin:1em 0 .5em 0; }
     h4 { margin:0 0 .5em 0; font-weight: normal; }
-    code, pre { font-size: 100%; }
+    code, pre { font-size: 100%; white-space: pre-wrap; }
     table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
     tbody td, tbody th { vertical-align:top; padding:2px 3px; }
     thead th { padding:1px 6px 1px 3px; background:#fefefe; text-align:left; font-weight:normal; font-size:11px; border:1px solid #ddd; }

@@ -125,10 +125,10 @@ All attributes except ``session`` should be considered read-only.
     Available headers depend on the client and server, but here are some
     examples:
 
-        * ``CONTENT_LENGTH``
-        * ``CONTENT_TYPE``
-        * ``HTTP_ACCEPT_ENCODING``
-        * ``HTTP_ACCEPT_LANGUAGE``
+        * ``CONTENT_LENGTH`` -- the length of the request body (as a string).
+        * ``CONTENT_TYPE`` -- the MIME type of the request body.
+        * ``HTTP_ACCEPT_ENCODING`` -- Acceptable encodings for the response.
+        * ``HTTP_ACCEPT_LANGUAGE`` -- Acceptable languages for the response.
         * ``HTTP_HOST`` -- The HTTP Host header sent by the client.
         * ``HTTP_REFERER`` -- The referring page, if any.
         * ``HTTP_USER_AGENT`` -- The client's user-agent string.
@@ -138,7 +138,7 @@ All attributes except ``session`` should be considered read-only.
         * ``REMOTE_USER`` -- The user authenticated by the Web server, if any.
         * ``REQUEST_METHOD`` -- A string such as ``"GET"`` or ``"POST"``.
         * ``SERVER_NAME`` -- The hostname of the server.
-        * ``SERVER_PORT`` -- The port of the server.
+        * ``SERVER_PORT`` -- The port of the server (as a string).
 
     With the exception of ``CONTENT_LENGTH`` and ``CONTENT_TYPE``, as given
     above, any HTTP headers in the request are converted to ``META`` keys by
@@ -481,6 +481,18 @@ In addition, ``QueryDict`` has the following methods:
         >>> q = QueryDict('a=1&a=2&a=3')
         >>> q.lists()
         [(u'a', [u'1', u'2', u'3'])]
+
+.. method:: QueryDict.dict()
+
+    .. versionadded:: 1.4
+
+    Returns ``dict`` representation of ``QueryDict``. For every (key, list)
+    pair in ``QueryDict``, ``dict`` will have (key, item), where item is one
+    element of the list, using same logic as :meth:`QueryDict.__getitem__()`::
+
+        >>> q = QueryDict('a=1&a=3&a=5')
+        >>> q.dict()
+        {u'a': u'5'}
 
 .. method:: QueryDict.urlencode([safe])
 

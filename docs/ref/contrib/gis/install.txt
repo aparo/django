@@ -112,7 +112,7 @@ is required.
 
 .. note::
 
-   On Linux platforms, it may be necessarry to run the ``ldconfig``
+   On Linux platforms, it may be necessary to run the ``ldconfig``
    command after installing each library.  For example::
 
        $ sudo make install
@@ -892,10 +892,10 @@ Summary::
 
         export PATH=/opt/local/bin:/opt/local/lib/postgresql83/bin
 
-    In addition, add the ``FALLBACK_DYLD_LIBRARY_PATH`` setting so that
+    In addition, add the ``DYLD_FALLBACK_LIBRARY_PATH`` setting so that
     the libraries can be found by Python::
 
-        export FALLBACK_DYLD_LIBRARY_PATH=/opt/local/lib:/opt/local/lib/postgresql83
+        export DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib:/opt/local/lib/postgresql83
 
 __ http://www.macports.org/
 
@@ -1202,7 +1202,7 @@ executable with ``cmd.exe``, will set this up::
      reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v GDAL_DATA /t REG_EXPAND_SZ /f /d "%GDAL_DATA%"
      reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v PROJ_LIB /t REG_EXPAND_SZ /f /d "%PROJ_LIB%"
 
-For your convenience, these commands are available in the execuatble batch
+For your convenience, these commands are available in the executable batch
 script, :download:`geodjango_setup.bat`.
 
 .. note::

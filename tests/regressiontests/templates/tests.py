@@ -12,14 +12,15 @@ import os
 import sys
 import traceback
 import warnings
+from urlparse import urljoin
 
 from django import template
-from django.template import base as template_base
+from django.template import base as template_base, RequestContext
 from django.core import urlresolvers
 from django.template import loader
 from django.template.loaders import app_directories, filesystem, cached
-from django.test.utils import get_warnings_state, restore_warnings_state,\
-    setup_test_template_loader, restore_template_loaders
+from django.test.utils import (get_warnings_state, restore_warnings_state,
+    setup_test_template_loader, restore_template_loaders)
 from django.utils import unittest
 from django.utils.formats import date_format
 from django.utils.translation import activate, deactivate, ugettext as _
@@ -31,7 +32,7 @@ from context import ContextTests
 from custom import CustomTagTests, CustomFilterTests
 from parser import ParserTests
 from unicode import UnicodeTests
-from nodelist import NodelistTest
+from nodelist import NodelistTest, ErrorIndexTest
 from smartif import *
 from response import *
 
@@ -1385,6 +1386,11 @@ class Templates(unittest.TestCase):
             'templatetag11': ('{% templatetag opencomment %}', {}, '{#'),
             'templatetag12': ('{% templatetag closecomment %}', {}, '#}'),
 
+            # Simple tags with customized names
+            'simpletag-renamed01': ('{% load custom %}{% minusone 7 %}', {}, '6'),
+            'simpletag-renamed02': ('{% load custom %}{% minustwo 7 %}', {}, '5'),
+            'simpletag-renamed03': ('{% load custom %}{% minustwo_overridden_name 7 %}', {}, template.TemplateSyntaxError),
+
             ### WIDTHRATIO TAG ########################################################
             'widthratio01': ('{% widthratio a b 0 %}', {'a':50,'b':100}, '0'),
             'widthratio02': ('{% widthratio a b 100 %}', {'a':0,'b':0}, ''),
@@ -1603,6 +1609,8 @@ class Templates(unittest.TestCase):
             'static-prefixtag02': ('{% load static %}{% get_static_prefix as static_prefix %}{{ static_prefix }}', {}, settings.STATIC_URL),
             'static-prefixtag03': ('{% load static %}{% get_media_prefix %}', {}, settings.MEDIA_URL),
             'static-prefixtag04': ('{% load static %}{% get_media_prefix as media_prefix %}{{ media_prefix }}', {}, settings.MEDIA_URL),
+            'static-statictag01': ('{% load static %}{% static "admin/base.css" %}', {}, urljoin(settings.STATIC_URL, 'admin/base.css')),
+            'static-statictag02': ('{% load static %}{% static base_css %}', {'base_css': 'admin/base.css'}, urljoin(settings.STATIC_URL, 'admin/base.css')),
         }
 
 class TemplateTagLoading(unittest.TestCase):

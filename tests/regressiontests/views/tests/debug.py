@@ -6,10 +6,11 @@ import sys
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, RequestFactory
+from django.test.utils import (setup_test_template_loader,
+                               restore_template_loaders)
 from django.core.urlresolvers import reverse
 from django.template import TemplateSyntaxError
 from django.views.debug import ExceptionReporter
-from django.core.exceptions import ImproperlyConfigured
 from django.core import mail
 
 from regressiontests.views import BrokenException, except_args
@@ -40,6 +41,26 @@ class DebugViewTests(TestCase):
         response = self.client.post('/raises/', data)
         self.assertTrue('file_data.txt' in response.content)
         self.assertFalse('haha' in response.content)
+
+    def test_403(self):
+        # Ensure no 403.html template exists to test the default case.
+        setup_test_template_loader({})
+        try:
+            response = self.client.get('/views/raises403/')
+            self.assertContains(response, '<h1>403 Forbidden</h1>', status_code=403)
+        finally:
+            restore_template_loaders()
+
+    def test_403_template(self):
+        # Set up a test 403.html template.
+        setup_test_template_loader(
+            {'403.html': 'This is a test template for a 403 Forbidden error.'}
+        )
+        try:
+            response = self.client.get('/views/raises403/')
+            self.assertContains(response, 'test template', status_code=403)
+        finally:
+            restore_template_loaders()
 
     def test_404(self):
         response = self.client.get('/views/raises404/')
@@ -224,7 +245,7 @@ class ExceptionReporterFilterTests(TestCase):
             mail.outbox = [] # Empty outbox
             request = self.rf.post('/some_url/', self.breakfast_data)
             response = view(request)
-            self.assertEquals(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox[0]
             # Frames vars are never shown in plain text email reports.
             self.assertNotIn('cooked_eggs', email.body)
@@ -244,7 +265,7 @@ class ExceptionReporterFilterTests(TestCase):
             mail.outbox = [] # Empty outbox
             request = self.rf.post('/some_url/', self.breakfast_data)
             response = view(request)
-            self.assertEquals(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox[0]
             # Frames vars are never shown in plain text email reports.
             self.assertNotIn('cooked_eggs', email.body)
@@ -269,7 +290,7 @@ class ExceptionReporterFilterTests(TestCase):
             mail.outbox = [] # Empty outbox
             request = self.rf.post('/some_url/', self.breakfast_data)
             response = view(request)
-            self.assertEquals(len(mail.outbox), 1)
+            self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox[0]
             # Frames vars are never shown in plain text email reports.
             self.assertNotIn('cooked_eggs', email.body)

@@ -83,6 +83,8 @@ the full list of conversions:
 
     ``IPAddressField``               ``IPAddressField``
 
+    ``GenericIPAddressField``        ``GenericIPAddressField``
+
     ``ManyToManyField``              ``ModelMultipleChoiceField`` (see
                                      below)
 
@@ -181,6 +183,8 @@ Consider this set of models::
 With these models, the ``ModelForm`` subclasses above would be roughly
 equivalent to this (the only difference being the ``save()`` method, which
 we'll discuss in a moment.)::
+
+    from django import forms
 
     class AuthorForm(forms.Form):
         name = forms.CharField(max_length=100)
@@ -709,7 +713,7 @@ Overiding ``clean()`` on a ``model_formset``
 Just like with ``ModelForms``, by default the ``clean()`` method of a
 ``model_formset`` will validate that none of the items in the formset violate
 the unique constraints on your model (either ``unique``, ``unique_together`` or
-``unique_for_date|month|year``).  If you want to overide the ``clean()`` method
+``unique_for_date|month|year``).  If you want to override the ``clean()`` method
 on a ``model_formset`` and maintain this validation, you must call the parent
 class's ``clean`` method::
 
@@ -828,6 +832,10 @@ a particular author, you could do this::
 .. note::
     ``inlineformset_factory`` uses ``modelformset_factory`` and marks
     ``can_delete=True``.
+
+.. seealso::
+
+    :ref:`Manually rendered can_delete and can_order <manually-rendered-can-delete-and-can-order>`.
 
 More than one foreign key to the same model
 -------------------------------------------

@@ -6,9 +6,8 @@ Requires cx_Oracle: http://cx-oracle.sourceforge.net/
 
 
 import datetime
+import decimal
 import sys
-import time
-from decimal import Decimal
 
 
 def _setup_environment(environ):
@@ -341,7 +340,7 @@ WHEN (new.%(col_name)s IS NULL)
             return None
 
         if isinstance(value, basestring):
-            return datetime.datetime(*(time.strptime(value, '%H:%M:%S')[:6]))
+            return datetime.datetime.strptime(value, '%H:%M:%S')
 
         # Oracle doesn't support tz-aware datetimes
         if value.tzinfo is not None:
@@ -428,6 +427,14 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         self.creation = DatabaseCreation(self)
         self.introspection = DatabaseIntrospection(self)
         self.validation = BaseDatabaseValidation(self)
+
+    def check_constraints(self, table_names=None):
+        """
+        To check constraints, we set constraints to immediate. Then, when, we're done we must ensure they
+        are returned to deferred.
+        """
+        self.cursor().execute('SET CONSTRAINTS ALL IMMEDIATE')
+        self.cursor().execute('SET CONSTRAINTS ALL DEFERRED')
 
     def _valid_connection(self):
         return self.connection is not None
@@ -731,7 +738,7 @@ def _rowfactory(row, cursor):
                     # This will normally be an integer from a sequence,
                     # but it could be a decimal value.
                     if '.' in value:
-                        value = Decimal(value)
+                        value = decimal.Decimal(value)
                     else:
                         value = int(value)
                 else:
@@ -744,12 +751,12 @@ def _rowfactory(row, cursor):
                 if scale == 0:
                     value = int(value)
                 else:
-                    value = Decimal(value)
+                    value = decimal.Decimal(value)
             elif '.' in value:
                 # No type information. This normally comes from a
                 # mathematical expression in the SELECT list. Guess int
                 # or Decimal based on whether it has a decimal point.
-                value = Decimal(value)
+                value = decimal.Decimal(value)
             else:
                 value = int(value)
         elif desc[1] in (Database.STRING, Database.FIXED_CHAR,

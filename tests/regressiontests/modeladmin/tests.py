@@ -120,6 +120,99 @@ class ModelAdminTests(TestCase):
         self.assertEqual(ma.get_form(request).base_fields.keys(),
             ['name'])
 
+    def test_custom_form_meta_exclude_with_readonly(self):
+        """
+        Ensure that the custom ModelForm's `Meta.exclude` is respected when
+        used in conjunction with `ModelAdmin.readonly_fields` and when no
+        `ModelAdmin.exclude` is defined.
+        Refs #14496.
+        """
+        # First, with `ModelAdmin` -----------------------
+
+        class AdminBandForm(forms.ModelForm):
+
+            class Meta:
+                model = Band
+                exclude = ['bio']
+
+        class BandAdmin(ModelAdmin):
+            readonly_fields = ['name']
+            form = AdminBandForm
+
+        ma = BandAdmin(Band, self.site)
+        self.assertEqual(ma.get_form(request).base_fields.keys(),
+            ['sign_date',])
+
+        # Then, with `InlineModelAdmin`  -----------------
+
+        class AdminConcertForm(forms.ModelForm):
+
+            class Meta:
+                model = Concert
+                exclude = ['day']
+
+        class ConcertInline(TabularInline):
+            readonly_fields = ['transport']
+            form = AdminConcertForm
+            fk_name = 'main_band'
+            model = Concert
+
+        class BandAdmin(ModelAdmin):
+            inlines = [
+                ConcertInline
+            ]
+
+        ma = BandAdmin(Band, self.site)
+        self.assertEqual(
+            list(ma.get_formsets(request))[0]().forms[0].fields.keys(),
+            ['main_band', 'opening_band', 'id', 'DELETE',])
+
+    def test_custom_form_meta_exclude(self):
+        """
+        Ensure that the custom ModelForm's `Meta.exclude` is overridden if
+        `ModelAdmin.exclude` or `InlineModelAdmin.exclude` are defined.
+        Refs #14496.
+        """
+        # First, with `ModelAdmin` -----------------------
+
+        class AdminBandForm(forms.ModelForm):
+
+            class Meta:
+                model = Band
+                exclude = ['bio']
+
+        class BandAdmin(ModelAdmin):
+            exclude = ['name']
+            form = AdminBandForm
+
+        ma = BandAdmin(Band, self.site)
+        self.assertEqual(ma.get_form(request).base_fields.keys(),
+            ['bio', 'sign_date',])
+
+        # Then, with `InlineModelAdmin`  -----------------
+
+        class AdminConcertForm(forms.ModelForm):
+
+            class Meta:
+                model = Concert
+                exclude = ['day']
+
+        class ConcertInline(TabularInline):
+            exclude = ['transport']
+            form = AdminConcertForm
+            fk_name = 'main_band'
+            model = Concert
+
+        class BandAdmin(ModelAdmin):
+            inlines = [
+                ConcertInline
+            ]
+
+        ma = BandAdmin(Band, self.site)
+        self.assertEqual(
+            list(ma.get_formsets(request))[0]().forms[0].fields.keys(),
+            ['main_band', 'opening_band', 'day', 'id', 'DELETE',])
+
     def test_custom_form_validation(self):
         # If we specify a form, it should use it allowing custom validation to work
         # properly. This won't, however, break any of the admin widgets or media.
@@ -140,6 +233,63 @@ class ModelAdminTests(TestCase):
         self.assertEqual(
             type(ma.get_form(request).base_fields['sign_date'].widget),
             AdminDateWidget)
+
+    def test_form_exclude_kwarg_override(self):
+        """
+        Ensure that the `exclude` kwarg passed to `ModelAdmin.get_form()`
+        overrides all other declarations. Refs #8999.
+        """
+
+        class AdminBandForm(forms.ModelForm):
+
+            class Meta:
+                model = Band
+                exclude = ['name']
+
+        class BandAdmin(ModelAdmin):
+            exclude = ['sign_date',]
+            form = AdminBandForm
+
+            def get_form(self, request, obj=None, **kwargs):
+                kwargs['exclude'] = ['bio']
+                return super(BandAdmin, self).get_form(request, obj, **kwargs)
+
+        ma = BandAdmin(Band, self.site)
+        self.assertEqual(ma.get_form(request).base_fields.keys(),
+            ['name', 'sign_date',])
+
+
+    def test_formset_exclude_kwarg_override(self):
+        """
+        Ensure that the `exclude` kwarg passed to `InlineModelAdmin.get_formset()`
+        overrides all other declarations. Refs #8999.
+        """
+
+        class AdminConcertForm(forms.ModelForm):
+
+            class Meta:
+                model = Concert
+                exclude = ['day']
+
+        class ConcertInline(TabularInline):
+            exclude = ['transport']
+            form = AdminConcertForm
+            fk_name = 'main_band'
+            model = Concert
+
+            def get_formset(self, request, obj=None, **kwargs):
+                kwargs['exclude'] = ['opening_band']
+                return super(ConcertInline, self).get_formset(request, obj, **kwargs)
+
+        class BandAdmin(ModelAdmin):
+            inlines = [
+                ConcertInline
+            ]
+
+        ma = BandAdmin(Band, self.site)
+        self.assertEqual(
+            list(ma.get_formsets(request))[0]().forms[0].fields.keys(),
+            ['main_band', 'day', 'transport', 'id', 'DELETE',])
 
     def test_queryset_override(self):
         # If we need to override the queryset of a ModelChoiceField in our custom form
@@ -179,6 +329,38 @@ class ModelAdminTests(TestCase):
             '<option value="" selected="selected">---------</option>\n'
             '<option value="%d">The Doors</option>\n'
             '</select>' % self.band.id)
+
+    def test_regression_for_ticket_15820(self):
+        """
+        Ensure that `obj` is passed from `InlineModelAdmin.get_fieldsets()` to
+        `InlineModelAdmin.get_formset()`.
+        """
+        class CustomConcertForm(forms.ModelForm):
+
+            class Meta:
+                model = Concert
+                fields = ['day']
+
+        class ConcertInline(TabularInline):
+            model = Concert
+            fk_name = 'main_band'
+
+            def get_formset(self, request, obj=None, **kwargs):
+                if obj:
+                    kwargs['form'] = CustomConcertForm
+                return super(ConcertInline, self).get_formset(request, obj, **kwargs)
+
+        class BandAdmin(ModelAdmin):
+            inlines = [
+                ConcertInline
+            ]
+
+        concert = Concert.objects.create(main_band=self.band, opening_band=self.band, day=1)
+        ma = BandAdmin(Band, self.site)
+        fieldsets = list(ma.inline_instances[0].get_fieldsets(request))
+        self.assertEqual(fieldsets[0][1]['fields'], ['main_band', 'opening_band', 'day', 'transport'])
+        fieldsets = list(ma.inline_instances[0].get_fieldsets(request, ma.inline_instances[0].model))
+        self.assertEqual(fieldsets[0][1]['fields'], ['day'])
 
     # radio_fields behavior ###########################################
 
@@ -346,7 +528,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.raw_id_fields' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.raw_id_fields' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -574,7 +756,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.filter_vertical' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.filter_vertical' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -614,7 +796,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.filter_horizontal' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.filter_horizontal' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -654,7 +836,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.radio_fields' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.radio_fields' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -705,7 +887,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.prepopulated_fields' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.prepopulated_fields' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -716,7 +898,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.prepopulated_fields\['slug'\]\[0\]' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.prepopulated_fields\['slug'\]\[0\]' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -953,7 +1135,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.date_hierarchy' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.date_hierarchy' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -993,7 +1175,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestModelAdmin.ordering\[0\]' refers to field 'non_existent_field' that is missing from model 'ValidationTestModel'.",
+            "'ValidationTestModelAdmin.ordering\[0\]' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,
@@ -1188,7 +1370,7 @@ class ValidationTests(unittest.TestCase):
 
         self.assertRaisesRegexp(
             ImproperlyConfigured,
-            "'ValidationTestInline.fk_name' refers to field 'non_existent_field' that is missing from model 'ValidationTestInlineModel'.",
+            "'ValidationTestInline.fk_name' refers to field 'non_existent_field' that is missing from model 'modeladmin.ValidationTestInlineModel'.",
             validate,
             ValidationTestModelAdmin,
             ValidationTestModel,

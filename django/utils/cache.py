@@ -26,7 +26,6 @@ from django.core.cache import get_cache
 from django.utils.encoding import smart_str, iri_to_uri
 from django.utils.http import http_date
 from django.utils.translation import get_language
-from django.http import HttpRequest
 
 cc_delim_re = re.compile(r'\s*,\s*')
 
@@ -75,6 +74,12 @@ def patch_cache_control(response, **kwargs):
     # a decorator and a piece of middleware both operate on a given view.
     if 'max-age' in cc and 'max_age' in kwargs:
         kwargs['max_age'] = min(cc['max-age'], kwargs['max_age'])
+
+    # Allow overriding private caching and vice versa
+    if 'private' in cc and 'public' in kwargs:
+        del cc['private']
+    elif 'public' in cc and 'private' in kwargs:
+        del cc['public']
 
     for (k, v) in kwargs.items():
         cc[k.replace('_', '-')] = v

@@ -1,4 +1,3 @@
-import time
 import datetime
 from django.db import models
 from django.core.exceptions import ImproperlyConfigured
@@ -211,9 +210,9 @@ class BaseDateListView(MultipleObjectMixin, DateMixin, View):
 
         date_list = queryset.dates(date_field, date_type)[::-1]
         if date_list is not None and not date_list and not allow_empty:
-            raise Http404(_(u"No %(verbose_name_plural)s available") % {
-                    'verbose_name_plural': force_unicode(qs.model._meta.verbose_name_plural)
-            })
+            name = force_unicode(queryset.model._meta.verbose_name_plural)
+            raise Http404(_(u"No %(verbose_name_plural)s available") %
+                          {'verbose_name_plural': name})
 
         return date_list
 
@@ -495,7 +494,7 @@ def _date_from_string(year, year_format, month, month_format, day='', day_format
     format = delim.join((year_format, month_format, day_format))
     datestr = delim.join((year, month, day))
     try:
-        return datetime.date(*time.strptime(datestr, format)[:3])
+        return datetime.datetime.strptime(datestr, format).date()
     except ValueError:
         raise Http404(_(u"Invalid date string '%(datestr)s' given format '%(format)s'") % {
             'datestr': datestr,

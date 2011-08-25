@@ -44,20 +44,6 @@ modules (in the format ``'foo.bar.baz'``) for which this site is an admin.
 The admin site uses this in its automatically-introspected documentation of
 models, views and template tags.
 
-.. setting:: ADMIN_MEDIA_PREFIX
-
-ADMIN_MEDIA_PREFIX
-------------------
-
-Default: ``'/static/admin/'``
-
-The URL prefix for admin media -- CSS, JavaScript and images used by the Django
-administrative interface. Make sure to use a trailing slash, and to have this be
-different from the :setting:`MEDIA_URL` setting (since the same URL cannot be
-mapped onto two different sets of files). For integration with :doc:`staticfiles
-</ref/contrib/staticfiles>`, this should be the same as
-:setting:`STATIC_URL` followed by ``'admin/'``.
-
 .. setting:: ADMINS
 
 ADMINS
@@ -319,7 +305,7 @@ CSRF_COOKIE_DOMAIN
 Default: ``None``
 
 The domain to be used when setting the CSRF cookie.  This can be useful for
-easily allowing cross-subdomain requests to be exluded from the normal cross
+easily allowing cross-subdomain requests to be excluded from the normal cross
 site request forgery protection.  It should be set to a string such as
 ``".lawrence.com"`` to allow a POST request from a form on one subdomain to be
 accepted by accepted by a view served from another subdomain.
@@ -594,6 +580,18 @@ test database will use the name ``'test_' + DATABASE_NAME``.
 
 See :doc:`/topics/testing`.
 
+.. setting:: TEST_CREATE
+
+TEST_CREATE
+~~~~~~~~~~~
+
+Default: ``True``
+
+This is an Oracle-specific setting.
+
+If it is set to ``False``, the test tablespaces won't be automatically created
+at the beginning of the tests and dropped at the end.
+
 .. setting:: TEST_USER
 
 TEST_USER
@@ -604,7 +602,55 @@ Default: ``None``
 This is an Oracle-specific setting.
 
 The username to use when connecting to the Oracle database that will be used
-when running tests.
+when running tests. If not provided, Django will use ``'test_' + USER``.
+
+.. setting:: TEST_CREATE_USER
+
+TEST_CREATE_USER
+~~~~~~~~~~~~~~~~
+
+Default: ``True``
+
+This is an Oracle-specific setting.
+
+If it is set to ``False``, the test user won't be automatically created at the
+beginning of the tests and dropped at the end.
+
+.. setting:: TEST_PASSWD
+
+TEST_PASSWD
+~~~~~~~~~~~
+
+Default: ``None``
+
+This is an Oracle-specific setting.
+
+The password to use when connecting to the Oracle database that will be used
+when running tests. If not provided, Django will use a hardcoded default value.
+
+.. setting:: TEST_TBLSPACE
+
+TEST_TBLSPACE
+~~~~~~~~~~~~~
+
+Default: ``None``
+
+This is an Oracle-specific setting.
+
+The name of the tablespace that will be used when running tests. If not
+provided, Django will use ``'test_' + NAME``.
+
+.. setting:: TEST_TBLSPACE_TMP
+
+TEST_TBLSPACE_TMP
+~~~~~~~~~~~~~~~~~
+
+Default: ``None``
+
+This is an Oracle-specific setting.
+
+The name of the temporary tablespace that will be used when running tests. If
+not provided, Django will use ``'test_' + NAME + '_temp'``.
 
 .. setting:: DATABASE_ROUTERS
 
@@ -1997,6 +2043,11 @@ format of the current locale.
 
 See also :setting:`USE_I18N` and :setting:`LANGUAGE_CODE`
 
+.. note::
+    The default :file:`settings.py` file created by
+    :djadmin:`django-admin.py startproject <startproject>` includes
+    ``USE_L10N = True`` for convenience.
+
 .. setting:: USE_THOUSAND_SEPARATOR
 
 USE_THOUSAND_SEPARATOR
@@ -2006,7 +2057,7 @@ USE_THOUSAND_SEPARATOR
 
 Default: ``False``
 
-A boolean that specifies wheter to display numbers using a thousand separator.
+A boolean that specifies whether to display numbers using a thousand separator.
 If this is set to ``True``, Django will use values from
 :setting:`THOUSAND_SEPARATOR` and :setting:`NUMBER_GROUPING` from current
 locale, to format the number. :setting:`USE_L10N` must be set to ``True``,

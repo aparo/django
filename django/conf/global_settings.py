@@ -13,7 +13,7 @@ DEBUG = False
 TEMPLATE_DEBUG = False
 
 # Whether the framework should propagate raw exceptions rather than catching
-# them. This is useful under some testing siutations and should never be used
+# them. This is useful under some testing situations and should never be used
 # on a live site.
 DEBUG_PROPAGATE_EXCEPTIONS = False
 
@@ -389,7 +389,7 @@ DECIMAL_SEPARATOR = '.'
 # Boolean that sets whether to add thousand separator when formatting numbers
 USE_THOUSAND_SEPARATOR = False
 
-# Number of digits that will be together, when spliting them by
+# Number of digits that will be together, when splitting them by
 # THOUSAND_SEPARATOR. 0 means no grouping, 3 means splitting by thousands...
 NUMBER_GROUPING = 0
 
@@ -506,7 +506,7 @@ CSRF_COOKIE_SECURE = False
 # MESSAGES #
 ############
 
-# Class to use as messges backend
+# Class to use as messages backend
 MESSAGE_STORAGE = 'django.contrib.messages.storage.fallback.FallbackStorage'
 
 # Default values of MESSAGE_LEVEL and MESSAGE_TAGS are defined within
@@ -525,9 +525,16 @@ LOGGING_CONFIG = 'django.utils.log.dictConfig'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda r: not DEBUG
+        }
+    },
     'handlers': {
         'mail_admins': {
             'level': 'ERROR',
+            'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
         }
     },
