@@ -142,6 +142,26 @@ class Storage(object):
         """
         raise NotImplementedError()
 
+    def iterate_on_files(self, directory="/"):
+        """
+        Returns an iterator to return all files of a directory
+        #added by aparo
+        """
+        dirs, files = self.listdir(directory)
+        for filename in files:
+            yield os.path.join(directory, filename)
+        for dirname in dirs:
+            dirname = os.path.join(directory, dirname) + os.path.sep
+            for filename in self.iterate_on_files(dirname):
+                yield filename
+
+    def rmdir(self, directory, recursive=False):
+        """
+        Remove a directory
+        """
+        raise NotImplementedError()
+
+
 class FileSystemStorage(Storage):
     """
     Standard filesystem storage

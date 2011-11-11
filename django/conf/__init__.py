@@ -75,6 +75,17 @@ class BaseSettings(object):
                           "use STATIC_URL instead.", DeprecationWarning)
         object.__setattr__(self, name, value)
 
+    def __getattribute__(self, name):
+        """
+        Override getattr to evaluate callable attributes
+        which would otherwise fail with python path functions
+        """
+        value = object.__getattribute__(self, name)
+        if callable(value):
+            value = value(None)
+        return value
+        
+
 
 class Settings(BaseSettings):
     def __init__(self, settings_module):

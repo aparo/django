@@ -277,6 +277,7 @@ class Model(object):
     _deferred = False
 
     def __init__(self, *args, **kwargs):
+        self._entity_exists = kwargs.pop('__entity_exists', False)
         signals.pre_init.send(sender=self.__class__, args=args, kwargs=kwargs)
 
         # Set up the storage for instance state
@@ -366,6 +367,9 @@ class Model(object):
                     pass
             if kwargs:
                 raise TypeError("'%s' is an invalid keyword argument for this function" % kwargs.keys()[0])
+        self._original_pk = self.pk if self._meta.pk is not None else None
+
+        # We finally update the user with the tenant info.
         super(Model, self).__init__()
         signals.post_init.send(sender=self.__class__, instance=self)
 
@@ -392,7 +396,7 @@ class Model(object):
 
     def __reduce__(self):
         """
-        Provides pickling support. Normally, this just dispatches to Python's
+        Provide pickling support. Normally, this just dispatches to Python's
         standard handling. However, for models with deferred field loading, we
         need to do things manually, as they're dynamically created classes and
         only module-level classes can be pickled by the default path.
@@ -401,7 +405,7 @@ class Model(object):
         model = self.__class__
         # The obvious thing to do here is to invoke super().__reduce__()
         # for the non-deferred case. Don't do that.
-        # On Python 2.4, there is something weird with __reduce__,
+        # On Python 2.4, there is something wierd with __reduce__,
         # and as a result, the super call will cause an infinite recursion.
         # See #10547 and #12121.
         defers = []
@@ -474,6 +478,7 @@ class Model(object):
         ('raw', 'cls', and 'origin').
         """
         using = using or router.db_for_write(self.__class__, instance=self)
+        entity_exists = bool(self._entity_exists and self._original_pk == self.pk)
         connection = connections[using]
         assert not (force_insert and force_update)
         if cls is None:
@@ -552,13 +557,18 @@ class Model(object):
                     order_value = manager.using(using).filter(**{field.name: getattr(self, field.attname)}).count()
                     self._order = order_value
 
+                if connection.features.distinguishes_insert_from_update:
+                    add = True
+                else:
+                    add = not entity_exists
+
                 if not pk_set:
                     if force_update:
                         raise ValueError("Cannot force an update in save() with no primary key.")
-                    values = [(f, f.get_db_prep_save(raw and getattr(self, f.attname) or f.pre_save(self, True), connection=connection))
+                    values = [(f, f.get_db_prep_save(raw and getattr(self, f.attname) or f.pre_save(self, add), connection=connection))
                         for f in meta.local_fields if not isinstance(f, AutoField)]
                 else:
-                    values = [(f, f.get_db_prep_save(raw and getattr(self, f.attname) or f.pre_save(self, True), connection=connection))
+                    values = [(f, f.get_db_prep_save(raw and getattr(self, f.attname) or f.pre_save(self, add), connection=connection))
                         for f in meta.local_fields]
 
                 record_exists = False
@@ -580,11 +590,17 @@ class Model(object):
         # Once saved, this is no longer a to-be-added instance.
         self._state.adding = False
 
+        self._entity_exists = True
+        self._original_pk = self.pk
+
         # Signal that the save is complete
         if origin and not meta.auto_created:
+            if connection.features.distinguishes_insert_from_update:
+                created = not record_exists
+            else:
+                created = not entity_exists
             signals.post_save.send(sender=origin, instance=self,
-                created=(not record_exists), raw=raw, using=using)
-
+                created=created, raw=raw, using=using)
 
     save_base.alters_data = True
 
@@ -595,6 +611,9 @@ class Model(object):
         collector = Collector(using=using)
         collector.collect([self])
         collector.delete()
+
+        self._entity_exists = False
+        self._original_pk = None
 
     delete.alters_data = True
 
@@ -609,7 +628,7 @@ class Model(object):
         order = not is_next and '-' or ''
         param = smart_str(getattr(self, field.attname))
         q = Q(**{'%s__%s' % (field.name, op): param})
-        q = q|Q(**{field.name: param, 'pk__%s' % op: self.pk})
+        q = q | Q(**{field.name: param, 'pk__%s' % op: self.pk})
         qs = self.__class__._default_manager.using(self._state.db).filter(**kwargs).filter(q).order_by('%s%s' % (order, field.name), '%spk' % order)
         try:
             return qs[0]
