@@ -142,17 +142,10 @@ SERVER_EMAIL = 'root@localhost'
 SEND_BROKEN_LINK_EMAILS = False
 
 # Database connection info.
-# Legacy format
-DATABASE_ENGINE = ''           # 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-DATABASE_NAME = ''             # Or path to database file if using sqlite3.
-DATABASE_USER = ''             # Not used with sqlite3.
-DATABASE_PASSWORD = ''         # Not used with sqlite3.
-DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
-DATABASE_OPTIONS = {}          # Set to empty dictionary for default.
-
-# New format
 DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.dummy',
+    },
 }
 
 # Classes used to implement db routing behaviour
@@ -412,6 +405,15 @@ DEFAULT_INDEX_TABLESPACE = ''
 # Default X-Frame-Options header value
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+USE_X_FORWARDED_HOST = False
+
+# The Python dotted path to the WSGI application that Django's internal servers
+# (runserver, runfcgi) will use. If `None`, the return value of
+# 'django.core.wsgi.get_wsgi_application' is used, thus preserving the same
+# behavior as previous versions of Django. Otherwise this should point to an
+# actual WSGI application object.
+WSGI_APPLICATION = None
+
 ##############
 # MIDDLEWARE #
 ##############
@@ -463,8 +465,8 @@ CACHE_MIDDLEWARE_ALIAS = 'default'
 
 COMMENTS_ALLOW_PROFANITIES = False
 
-# The profanities that will trigger a validation error in the
-# 'hasNoProfanities' validator. All of these should be in lowercase.
+# The profanities that will trigger a validation error in
+# CommentDetailsForm.clean_comment. All of these should be in lowercase.
 PROFANITIES_LIST = ()
 
 ##################
@@ -522,13 +524,13 @@ LOGGING_CONFIG = 'django.utils.log.dictConfig'
 # The default logging configuration. This sends an email to
 # the site admins on every HTTP 500 error. All other log
 # records are sent to the bit bucket.
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'filters': {
         'require_debug_false': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda r: not DEBUG
+            '()': 'django.utils.log.RequireDebugFalse',
         }
     },
     'handlers': {
@@ -557,17 +559,6 @@ DEFAULT_EXCEPTION_REPORTER_FILTER = 'django.views.debug.SafeExceptionReporterFil
 
 # The name of the class to use to run the test suite
 TEST_RUNNER = 'django.test.simple.DjangoTestSuiteRunner'
-
-# The name of the database to use for testing purposes.
-# If None, a name of 'test_' + DATABASE_NAME will be assumed
-TEST_DATABASE_NAME = None
-
-# Strings used to set the character set and collation order for the test
-# database. These values are passed literally to the server, so they are
-# backend-dependent. If None, no special settings are sent (system defaults are
-# used).
-TEST_DATABASE_CHARSET = None
-TEST_DATABASE_COLLATION = None
 
 ############
 # FIXTURES #

@@ -574,12 +574,7 @@ class Model(object):
                 record_exists = False
 
                 update_pk = bool(meta.has_auto_field and not pk_set)
-                if values:
-                    # Create a new record.
-                    result = manager._insert(values, return_id=update_pk, using=using)
-                else:
-                    # Create a new record with defaults for everything.
-                    result = manager._insert([(meta.pk, connection.ops.pk_default_value())], return_id=update_pk, raw_values=True, using=using)
+                result = manager._insert([self], fields=fields, return_id=update_pk, using=using, raw=raw)
 
                 if update_pk:
                     setattr(self, meta.pk.attname, result)
